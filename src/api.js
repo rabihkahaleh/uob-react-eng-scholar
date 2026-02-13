@@ -15,8 +15,8 @@ export async function getDepartments() {
   return data?.collections?.collection || [];
 }
 
-export async function getArticles(collectionId) {
-  const data = await fetchXML(`/collections/${collectionId}/items?expand=metadata`);
+export async function getArticles(collectionId, limit = 10000) {
+  const data = await fetchXML(`/collections/${collectionId}/items?expand=metadata&limit=${limit}`);
   return data?.items?.item || [];
 }
 

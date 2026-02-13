@@ -1,40 +1,60 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { getDepartments, getArticles, getArticleMetadata } from "./api";
 import Dashboard from "./components/Dashboard";
 import ArticleList from "./components/ArticleList";
 import ArticleDetails from "./components/ArticleDetails";
-import { GraduationCap, Home } from "lucide-react";
+import { GraduationCap, Home, Loader2 } from "lucide-react";
 
 function App() {
   const [departments, setDepartments] = useState([]);
   const [selectedDept, setSelectedDept] = useState(null);
-  const [articles, setArticles] = useState([]);
+  const [allArticles, setAllArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [metadata, setMetadata] = useState(null);
 
   useEffect(() => {
-    async function load() {
+    async function init() {
+      setLoading(true);
       try {
         const deps = await getDepartments();
-        setDepartments(Array.isArray(deps) ? deps : [deps]);
+        const depArray = Array.isArray(deps) ? deps : [deps];
+        setDepartments(depArray);
+
+        // Fetch ALL articles for ALL departments to provide "Full Data"
+        const allFetched = await Promise.all(
+          depArray.map(async (d) => {
+            try {
+              const items = await getArticles(d.id, d.numberItems || 1000);
+              const itemsArray = Array.isArray(items) ? items : [items];
+              // Tag each article with its department info
+              return itemsArray.map(item => ({
+                ...item,
+                deptId: d.id,
+                deptName: d.name.replace("Department of ", "")
+              }));
+            } catch (e) {
+              console.error(`Failed for dept ${d.id}`, e);
+              return [];
+            }
+          })
+        );
+
+        const merged = allFetched.flat().filter(Boolean);
+        setAllArticles(merged);
       } catch (err) {
-        console.error("Failed to load departments", err);
+        console.error("Initialization failed", err);
+      } finally {
+        setLoading(false);
       }
     }
-    load();
+    init();
   }, []);
 
-  async function handleSelectDepartment(dept) {
+  const handleSelectDepartment = useCallback((dept) => {
     setSelectedDept(dept);
     setSelectedArticle(null);
-    try {
-      const items = await getArticles(dept.id);
-      setArticles(Array.isArray(items) ? items : [items]);
-    } catch (err) {
-      console.error("Failed to load articles", err);
-      setArticles([]);
-    }
-  }
+  }, []);
 
   async function handleSelectArticle(article) {
     try {
@@ -48,8 +68,24 @@ function App() {
 
   const goHome = () => {
     setSelectedDept(null);
-    setArticles([]);
+    setSelectedArticle(null);
   };
+
+  const currentArticles = selectedDept
+    ? allArticles.filter(a => a.parentCollection?.id === selectedDept.id || a.collectionId === selectedDept.id)
+    : allArticles;
+
+  if (loading) {
+    return (
+      <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg)", gap: "1.5rem" }}>
+        <Loader2 className="animate-spin" size={48} color="var(--primary)" />
+        <div style={{ textAlign: "center" }}>
+          <h2 style={{ color: "var(--primary)", fontWeight: "800", marginBottom: "0.5rem" }}>Synchronizing Research Data</h2>
+          <p style={{ color: "var(--text-muted)" }}>Loading all publications from the Faculty of Engineering...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container">
@@ -81,7 +117,7 @@ function App() {
         <nav style={{ overflowY: "auto", flex: 1, marginRight: "-1rem", paddingRight: "1rem" }}>
           <ul className="nav-list">
             <li className={`nav-item ${!selectedDept ? "active" : ""}`} onClick={goHome}>
-              <Home size={18} /> Overview
+              <Home size={18} /> Faculty Overview
             </li>
             <div style={{ margin: "1rem 0 0.5rem 0", color: "rgba(255,255,255,0.4)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
               Departments
@@ -116,22 +152,21 @@ function App() {
         <Dashboard
           departments={departments}
           selectedDept={selectedDept}
-          articles={articles}
+          articles={currentArticles}
+          totalFacultyArticles={allArticles}
         />
 
-        {selectedDept && (
-          <div className="fade-in" style={{ marginTop: "3rem" }}>
-            <div className="section-divider">
-              <h2>Research Publications</h2>
-              <div className="line"></div>
-            </div>
-            <ArticleList
-              articles={articles}
-              selectedDept={selectedDept}
-              onSelect={handleSelectArticle}
-            />
+        <div className="fade-in" style={{ marginTop: "3rem" }}>
+          <div className="section-divider">
+            <h2>{selectedDept ? `${selectedDept.name} Publications` : "Faculty-Wide Research Disovery"}</h2>
+            <div className="line"></div>
           </div>
-        )}
+          <ArticleList
+            articles={allArticles}
+            currentDeptId={selectedDept?.id}
+            onSelect={handleSelectArticle}
+          />
+        </div>
 
         {selectedArticle && (
           <ArticleDetails

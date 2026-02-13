@@ -5,12 +5,12 @@ import {
 } from 'recharts';
 import { Database, FileText, Users, Award } from 'lucide-react';
 
-export default function Dashboard({ departments, articles, selectedDept }) {
+export default function Dashboard({ departments, articles, selectedDept, totalFacultyArticles = [] }) {
     // Compute global stats
     const totalArticles = useMemo(() => {
         if (selectedDept) return selectedDept.numberItems || articles.length;
-        return departments.reduce((acc, d) => acc + parseInt(d.numberItems || 0), 0);
-    }, [departments, articles, selectedDept]);
+        return totalFacultyArticles.length || departments.reduce((acc, d) => acc + parseInt(d.numberItems || 0), 0);
+    }, [departments, articles, selectedDept, totalFacultyArticles]);
 
     const COLORS = ['#1e3a8a', '#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#f43f5e'];
 
@@ -18,9 +18,9 @@ export default function Dashboard({ departments, articles, selectedDept }) {
     const stats = useMemo(() => {
         const uniqueAuthors = new Set();
         articles.forEach(a => {
-            if (Array.isArray(a.metadata)) {
-                a.metadata.filter(m => m.key === "dc.contributor.author").forEach(m => uniqueAuthors.add(m.value));
-            }
+            const rawMeta = a.metadata;
+            const metadataList = Array.isArray(rawMeta) ? rawMeta : (rawMeta ? [rawMeta] : []);
+            metadataList.filter(m => m.key === "dc.contributor.author").forEach(m => uniqueAuthors.add(m.value));
         });
 
         if (selectedDept) {
@@ -62,14 +62,34 @@ export default function Dashboard({ departments, articles, selectedDept }) {
 
 
 
+    // Prepare data for Top Authors
+    const authorStats = useMemo(() => {
+        if (!articles || articles.length === 0) return [];
+        const counts = {};
+        articles.forEach(a => {
+            const rawMeta = a.metadata;
+            const metadataList = Array.isArray(rawMeta) ? rawMeta : (rawMeta ? [rawMeta] : []);
+            metadataList
+                .filter(m => m.key === "dc.contributor.author")
+                .forEach(m => {
+                    const name = m.value;
+                    counts[name] = (counts[name] || 0) + 1;
+                });
+        });
+        return Object.entries(counts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10); // Top 10 researchers
+    }, [articles]);
+
     // Prepare data for Authorship Distribution
     const authorshipData = useMemo(() => {
         if (!articles || articles.length === 0) return [];
         const distribution = {};
         articles.forEach(a => {
-            const authorCount = Array.isArray(a.metadata)
-                ? a.metadata.filter(m => m.key === "dc.contributor.author").length
-                : 1;
+            const rawMeta = a.metadata;
+            const metadataList = Array.isArray(rawMeta) ? rawMeta : (rawMeta ? [rawMeta] : []);
+            const authorCount = metadataList.filter(m => m.key === "dc.contributor.author").length;
             const key = authorCount > 5 ? '5+' : authorCount.toString();
             distribution[key] = (distribution[key] || 0) + 1;
         });
@@ -100,7 +120,7 @@ export default function Dashboard({ departments, articles, selectedDept }) {
                 ))}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
                 <div className="chart-container">
                     <h3 className="chart-title">Annual Research Output</h3>
                     <div style={{ height: "300px" }}>
@@ -168,6 +188,39 @@ export default function Dashboard({ departments, articles, selectedDept }) {
                     </div>
                 </div>
             </div>
+
+            {articles.length > 0 && (
+                <div className="chart-container" style={{ width: "100%" }}>
+                    <h3 className="chart-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        Top Contributing Researchers
+                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600" }}>Based on {articles.length} publications</span>
+                    </h3>
+                    <div style={{ height: "450px", marginTop: "1rem" }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                layout="vertical"
+                                data={authorStats}
+                                margin={{ top: 5, right: 50, left: 50, bottom: 5 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                <XAxis type="number" />
+                                <YAxis
+                                    dataKey="name"
+                                    type="category"
+                                    width={200}
+                                    tick={{ fontSize: 13, fontWeight: 700, fill: 'var(--primary)' }}
+                                />
+                                <Tooltip
+                                    contentStyle={{ background: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                />
+                                <Bar dataKey="count" fill="var(--primary)" radius={[0, 6, 6, 0]} barSize={25}>
+                                    <LabelList dataKey="count" position="right" style={{ fill: 'var(--primary)', fontWeight: '900', fontSize: '14px' }} />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
