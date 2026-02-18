@@ -10,38 +10,47 @@ function App() {
   const [selectedDept, setSelectedDept] = useState(null);
   const [allArticles, setAllArticles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState({ percent: 0, message: "Connecting to ScholarHub..." });
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [metadata, setMetadata] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     async function init() {
       setLoading(true);
+      setLoadingProgress({ percent: 5, message: "Connecting to ScholarHub..." });
       try {
         const deps = await getDepartments();
         const depArray = Array.isArray(deps) ? deps : [deps];
         setDepartments(depArray);
+        setLoadingProgress({ percent: 10, message: `Found ${depArray.length} departments. Loading publications...` });
 
-        // Fetch ALL articles for ALL departments to provide "Full Data"
-        const allFetched = await Promise.all(
-          depArray.map(async (d) => {
-            try {
-              const items = await getArticles(d.id, d.numberItems || 1000);
-              const itemsArray = Array.isArray(items) ? items : [items];
-              // Tag each article with its department info
-              return itemsArray.map(item => ({
+        const allFetched = [];
+        for (let i = 0; i < depArray.length; i++) {
+          const d = depArray[i];
+          const deptName = d.name.replace("Department of ", "");
+          setLoadingProgress({
+            percent: 10 + Math.round(((i) / depArray.length) * 85),
+            message: `Loading ${deptName}... (${i + 1}/${depArray.length})`
+          });
+          try {
+            const items = await getArticles(d.id, d.numberItems || 1000);
+            const itemsArray = Array.isArray(items) ? items : [items];
+            allFetched.push(
+              ...itemsArray.map(item => ({
                 ...item,
                 deptId: d.id,
-                deptName: d.name.replace("Department of ", "")
-              }));
-            } catch (e) {
-              console.error(`Failed for dept ${d.id}`, e);
-              return [];
-            }
-          })
-        );
+                deptName: deptName
+              }))
+            );
+          } catch (e) {
+            console.error(`Failed for dept ${d.id}`, e);
+          }
+        }
 
-        const merged = allFetched.flat().filter(Boolean);
-        setAllArticles(merged);
+        setLoadingProgress({ percent: 98, message: "Finalizing data..." });
+        setAllArticles(allFetched.filter(Boolean));
+        setLoadingProgress({ percent: 100, message: "Complete!" });
       } catch (err) {
         console.error("Initialization failed", err);
       } finally {
@@ -54,6 +63,7 @@ function App() {
   const handleSelectDepartment = useCallback((dept) => {
     setSelectedDept(dept);
     setSelectedArticle(null);
+    setSearchTerm("");
   }, []);
 
   async function handleSelectArticle(article) {
@@ -69,6 +79,7 @@ function App() {
   const goHome = () => {
     setSelectedDept(null);
     setSelectedArticle(null);
+    setSearchTerm("");
   };
 
   const currentArticles = selectedDept
@@ -77,11 +88,36 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg)", gap: "1.5rem" }}>
+      <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg)", gap: "2rem" }}>
         <Loader2 className="animate-spin" size={48} color="var(--primary)" />
         <div style={{ textAlign: "center" }}>
           <h2 style={{ color: "var(--primary)", fontWeight: "800", marginBottom: "0.5rem" }}>Synchronizing Research Data</h2>
-          <p style={{ color: "var(--text-muted)" }}>Loading all publications from the Faculty of Engineering...</p>
+          <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>{loadingProgress.message}</p>
+        </div>
+        <div style={{ width: "320px" }}>
+          <div style={{
+            height: "8px",
+            background: "#e5e7eb",
+            borderRadius: "4px",
+            overflow: "hidden"
+          }}>
+            <div style={{
+              height: "100%",
+              width: `${loadingProgress.percent}%`,
+              background: "var(--primary)",
+              borderRadius: "4px",
+              transition: "width 0.4s ease"
+            }} />
+          </div>
+          <p style={{
+            textAlign: "center",
+            marginTop: "0.5rem",
+            fontSize: "0.85rem",
+            fontWeight: "700",
+            color: "var(--primary)"
+          }}>
+            {loadingProgress.percent}%
+          </p>
         </div>
       </div>
     );
@@ -165,6 +201,8 @@ function App() {
             articles={allArticles}
             currentDeptId={selectedDept?.id}
             onSelect={handleSelectArticle}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
           />
         </div>
 

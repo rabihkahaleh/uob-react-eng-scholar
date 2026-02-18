@@ -120,7 +120,7 @@ export default function Dashboard({ departments, articles, selectedDept, totalFa
                 ))}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: selectedDept ? "1fr 1fr" : "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
                 <div className="chart-container">
                     <h3 className="chart-title">Annual Research Output</h3>
                     <div style={{ height: "300px" }}>
@@ -140,24 +140,26 @@ export default function Dashboard({ departments, articles, selectedDept, totalFa
                     </div>
                 </div>
 
-                <div className="chart-container">
-                    <h3 className="chart-title">Collaboration: Authors Per Paper</h3>
-                    <div style={{ height: "300px" }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={authorshipData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip
-                                    contentStyle={{ background: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                />
-                                <Bar dataKey="count" fill="var(--secondary)" radius={[4, 4, 0, 0]}>
-                                    <LabelList dataKey="count" position="top" style={{ fill: 'var(--primary)', fontWeight: 'bold', fontSize: '12px' }} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                {!selectedDept && (
+                    <div className="chart-container">
+                        <h3 className="chart-title">Collaboration: Authors Per Paper</h3>
+                        <div style={{ height: "300px" }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={authorshipData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip
+                                        contentStyle={{ background: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    />
+                                    <Bar dataKey="count" fill="var(--secondary)" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="count" position="top" style={{ fill: 'var(--primary)', fontWeight: 'bold', fontSize: '12px' }} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div className="chart-container">
                     <h3 className="chart-title">Research Distribution</h3>

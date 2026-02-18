@@ -31,9 +31,24 @@ export async function getDepartments() {
   return data?.collections?.collection || [];
 }
 
-export async function getArticles(collectionId, limit = 10000) {
-  const data = await fetchXML(`/collections/${collectionId}/items?expand=metadata&limit=${limit}`);
-  return data?.items?.item || [];
+export async function getArticles(collectionId, totalExpected = 1000) {
+  const PAGE_SIZE = 100;
+  let allItems = [];
+  let offset = 0;
+
+  while (offset < totalExpected) {
+    const data = await fetchXML(
+      `/collections/${collectionId}/items?expand=metadata&limit=${PAGE_SIZE}&offset=${offset}`
+    );
+    const items = data?.items?.item;
+    if (!items) break;
+    const batch = Array.isArray(items) ? items : [items];
+    allItems = allItems.concat(batch);
+    if (batch.length < PAGE_SIZE) break; // no more pages
+    offset += PAGE_SIZE;
+  }
+
+  return allItems;
 }
 
 export async function getArticleMetadata(itemId) {
