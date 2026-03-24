@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Search, FileText, ChevronRight, ChevronLeft, User } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Search, FileText, ChevronRight, ChevronLeft, User, BarChart2 } from "lucide-react";
 
 export default function ArticleList({ articles, currentDeptId, onSelect, searchTerm, setSearchTerm }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -11,7 +11,6 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
   }, [searchTerm, currentDeptId, articles]);
 
   const filteredArticles = useMemo(() => {
-    // Determine the base set: if searching, use all; otherwise, filter by dept
     let baseSet = articles;
     if (!searchTerm && currentDeptId) {
       baseSet = articles.filter(a => a.deptId === currentDeptId);
@@ -21,7 +20,6 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
 
     const term = searchTerm.toLowerCase();
 
-    // When searching, look across the whole set provided (App.js ensures this is Faculty-wide if needed)
     return articles.filter(a => {
       const nameMatch = a.name?.toLowerCase().includes(term);
       const idMatch = a.id?.toString().includes(term);
@@ -29,16 +27,18 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
       const rawMeta = a.metadata;
       const metadataList = Array.isArray(rawMeta) ? rawMeta : (rawMeta ? [rawMeta] : []);
 
-      const authors = metadataList
+      const authorMatch = metadataList
         .filter(m => m.key === "dc.contributor.author")
-        .map(m => m.value?.toLowerCase() || "");
+        .some(m => m.value?.toLowerCase().includes(term));
 
-      const authorMatch = authors.some(author => author.includes(term));
-      return nameMatch || idMatch || authorMatch;
+      const sourceMatch = metadataList
+        .find(m => m.key === "dc.source")?.value?.toLowerCase().includes(term);
+
+      return nameMatch || idMatch || authorMatch || sourceMatch;
     });
   }, [articles, searchTerm, currentDeptId]);
 
-  // Pagination Logic
+  // Pagination
   const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -47,7 +47,6 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
-      // Removed auto-scroll as requested
     }
   };
 
@@ -58,7 +57,7 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
         <input
           type="text"
           className="search-input"
-          placeholder="DISCOVER RESEARCH BY TITLE, AUTHOR, OR ID..."
+          placeholder="DISCOVER RESEARCH BY TITLE, AUTHOR, JOURNAL, OR ID..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -76,48 +75,77 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
       )}
 
       {filteredArticles.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "3rem", background: "white", borderRadius: "12px", border: "1px dashed var(--border)" }}>
+        <div style={{ textAlign: "center", padding: "3rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #e2e8f0" }}>
           <FileText size={48} style={{ color: "var(--text-muted)", marginBottom: "1rem" }} />
           <p style={{ color: "var(--text-muted)" }}>{searchTerm ? `No publications match "${searchTerm}"` : "No articles found in this department."}</p>
         </div>
       ) : (
         <>
           <div className="article-grid">
-            {currentItems.map((a) => (
-              <div
-                key={a.id}
-                className="article-card"
-                onClick={() => onSelect(a)}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <span className="article-type">{a.type || "Research Paper"}</span>
-                  {a.deptName && (
-                    <span style={{
-                      fontSize: '0.6rem',
-                      background: 'var(--bg)',
-                      padding: '0.2rem 0.5rem',
-                      borderRadius: '4px',
-                      fontWeight: '800',
-                      color: 'var(--primary)',
-                      textTransform: 'uppercase'
-                    }}>
-                      {a.deptName}
-                    </span>
-                  )}
+            {currentItems.map((a) => {
+              const metaList = Array.isArray(a.metadata) ? a.metadata : (a.metadata ? [a.metadata] : []);
+              const authorRaw = metaList.find(m => m.key === "dc.contributor.author")?.value || "";
+              const authorNames = authorRaw.split(";").map(a => a.trim()).filter(Boolean);
+              const authorDisplay = authorNames.length > 2
+                ? `${authorNames[0]} et al. (${authorNames.length})`
+                : authorNames.join("; ") || "Scopus Author";
+              const source = metaList.find(m => m.key === "dc.source")?.value || "";
+              const citedBy = metaList.find(m => m.key === "dc.relation.citedby")?.value || "0";
+              const year = a.lastModified ? new Date(a.lastModified).getFullYear() : "";
+
+              return (
+                <div
+                  key={a.id}
+                  className="article-card"
+                  onClick={() => onSelect(a)}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <span className="article-type">{a.type || "Article"}</span>
+                    {a.deptName && (
+                      <span style={{
+                        fontSize: '0.6rem',
+                        background: 'rgba(59,130,246,0.1)',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '4px',
+                        fontWeight: '800',
+                        color: '#1e3a8a',
+                        textTransform: 'uppercase'
+                      }}>
+                        {a.deptName}
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="article-title">{a.name}</h3>
+
+                  <div className="article-meta">
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", width: "100%" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem" }}>
+                          <User size={12} /> {authorDisplay}
+                        </span>
+                        <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{year}</span>
+                      </div>
+
+                      {source && (
+                        <span style={{
+                          fontSize: "0.75rem", color: "var(--primary)",
+                          fontStyle: "italic", overflow: "hidden",
+                          textOverflow: "ellipsis", whiteSpace: "nowrap"
+                        }}>
+                          {source}
+                        </span>
+                      )}
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        <BarChart2 size={11} />
+                        <span>Cited by {citedBy}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="article-title">{a.name}</h3>
-                <div className="article-meta">
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                    <User size={12} /> {
-                      (Array.isArray(a.metadata) ? a.metadata : (a.metadata ? [a.metadata] : []))
-                        .find(m => m.key === "dc.contributor.author")?.value || "UOB Researcher"
-                    }
-                  </span>
-                  <span style={{ color: "var(--text-muted)", marginLeft: "auto" }}>ID: {a.id}</span>
-                  {a.lastModified && <span style={{ color: "var(--text-muted)" }}>{new Date(a.lastModified).getFullYear()}</span>}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination Controls */}
@@ -126,16 +154,16 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
             justifyContent: "space-between",
             alignItems: "center",
             marginTop: "2rem",
-            padding: "1rem",
-            background: "white",
+            padding: "1rem 1.25rem",
+            background: "#ffffff",
             borderRadius: "12px",
-            border: "1px solid var(--border)",
+            border: "1px solid #e2e8f0",
             flexWrap: "wrap",
             gap: "1rem"
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontWeight: "600" }}>
-                Showing {filteredArticles.length > 0 ? indexOfFirstItem + 1 : 0}-{Math.min(indexOfLastItem, filteredArticles.length)} of {filteredArticles.length}
+                Showing {filteredArticles.length > 0 ? indexOfFirstItem + 1 : 0}–{Math.min(indexOfLastItem, filteredArticles.length)} of {filteredArticles.length}
               </span>
               <div style={{ width: "1px", height: "15px", background: "var(--border)" }}></div>
               <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontWeight: "600" }}>Rows:</span>
@@ -152,9 +180,9 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
                   cursor: "pointer"
                 }}
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+                <option value={48}>48</option>
                 <option value={100}>100</option>
               </select>
             </div>
@@ -164,23 +192,20 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
                 disabled={currentPage === 1}
                 onClick={() => handlePageChange(currentPage - 1)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.3rem",
+                  display: "flex", alignItems: "center", gap: "0.3rem",
                   padding: "0.5rem 1rem",
-                  border: "1px solid var(--border)",
+                  border: "1px solid #e2e8f0",
                   borderRadius: "8px",
-                  background: currentPage === 1 ? "var(--bg)" : "white",
-                  color: currentPage === 1 ? "var(--text-muted)" : "var(--primary)",
+                  background: currentPage === 1 ? "transparent" : "rgba(59,130,246,0.1)",
+                  color: currentPage === 1 ? "#94a3b8" : "#1e3a8a",
                   cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                  fontWeight: "600",
-                  transition: "all 0.2s"
+                  fontWeight: "600", transition: "all 0.2s", fontSize: "0.85rem"
                 }}
               >
                 <ChevronLeft size={16} /> Prev
               </button>
 
-              <span style={{ color: "var(--text)", fontWeight: "600", fontSize: "0.9rem" }}>
+              <span style={{ color: "#64748b", fontWeight: "600", fontSize: "0.85rem" }}>
                 Page {currentPage} of {totalPages}
               </span>
 
@@ -188,17 +213,14 @@ export default function ArticleList({ articles, currentDeptId, onSelect, searchT
                 disabled={currentPage === totalPages}
                 onClick={() => handlePageChange(currentPage + 1)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.3rem",
+                  display: "flex", alignItems: "center", gap: "0.3rem",
                   padding: "0.5rem 1rem",
-                  border: "1px solid var(--border)",
+                  border: "1px solid #e2e8f0",
                   borderRadius: "8px",
-                  background: currentPage === totalPages ? "var(--bg)" : "white",
-                  color: currentPage === totalPages ? "var(--text-muted)" : "var(--primary)",
+                  background: currentPage === totalPages ? "transparent" : "rgba(59,130,246,0.1)",
+                  color: currentPage === totalPages ? "#94a3b8" : "#1e3a8a",
                   cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                  fontWeight: "600",
-                  transition: "all 0.2s"
+                  fontWeight: "600", transition: "all 0.2s", fontSize: "0.85rem"
                 }}
               >
                 Next <ChevronRight size={16} />

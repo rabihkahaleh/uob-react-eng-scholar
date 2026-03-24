@@ -1,95 +1,46 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend, LabelList
 } from 'recharts';
-import { Database, FileText, Users, Award } from 'lucide-react';
 
-export default function Dashboard({ departments, articles, selectedDept, totalFacultyArticles = [] }) {
-    // Compute global stats
-    const totalArticles = useMemo(() => {
-        if (selectedDept) return selectedDept.numberItems || articles.length;
-        return totalFacultyArticles.length || departments.reduce((acc, d) => acc + parseInt(d.numberItems || 0), 0);
-    }, [departments, articles, selectedDept, totalFacultyArticles]);
+export default function Dashboard({ departments, articles, selectedDept }) {
+    const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#f43f5e', '#06b6d4'];
 
-    const COLORS = ['#1e3a8a', '#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#f43f5e'];
-
-    // Stats for the "Engineering" feel
-    const stats = useMemo(() => {
-        const uniqueAuthors = new Set();
-        articles.forEach(a => {
-            const rawMeta = a.metadata;
-            const metadataList = Array.isArray(rawMeta) ? rawMeta : (rawMeta ? [rawMeta] : []);
-            metadataList.filter(m => m.key === "dc.contributor.author").forEach(m => uniqueAuthors.add(m.value));
-        });
-
-        if (selectedDept) {
-            const years = articles.map(a => a.lastModified ? new Date(a.lastModified).getFullYear() : 2024);
-            const span = years.length > 0 ? (new Date().getFullYear() - Math.min(...years)) + 1 : 10;
-
-            return [
-                { label: "Total Publications", value: selectedDept.numberItems || totalArticles, icon: FileText, color: "#1e3a8a" },
-                { label: "Est. Research Span", value: `${span} Years`, icon: Award, color: "#f59e0b" },
-                { label: "Unique Researchers", value: uniqueAuthors.size || `~${Math.floor(parseInt(selectedDept.numberItems || 20) / 3.5)}`, icon: Users, color: "#10b981" },
-                { label: "Dept Scale", value: parseInt(selectedDept.numberItems) > 100 ? "Large" : "Active", icon: Database, color: "#3b82f6" },
-            ];
-        }
-        return [
-            { label: "Total Publications", value: totalArticles, icon: FileText, color: "#1e3a8a" },
-            { label: "Departments", value: departments.length, icon: Database, color: "#3b82f6" },
-            { label: "Faculty History", value: "25+ Years", icon: Award, color: "#f59e0b" },
-            { label: "Faculty Researchers", value: "~140", icon: Users, color: "#10b981" },
-        ];
-    }, [selectedDept, totalArticles, articles, departments]);
-
-    // Prepare data for Department Chart
-    const deptData = useMemo(() => {
-        if (selectedDept) {
-            return [
-                { name: '2020', value: Math.floor(totalArticles * 0.15) },
-                { name: '2021', value: Math.floor(totalArticles * 0.20) },
-                { name: '2022', value: Math.floor(totalArticles * 0.18) },
-                { name: '2023', value: Math.floor(totalArticles * 0.25) },
-                { name: '2024', value: Math.floor(totalArticles * 0.22) },
-            ];
-        }
-        return departments.map((d, i) => ({
-            name: d.name.replace("Department of ", "").split(' ').map(w => w[0]).join(''), // Abbreviate
-            fullName: d.name.replace("Department of ", ""),
-            value: parseInt(d.numberItems || 0)
-        })).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
-    }, [departments, selectedDept, totalArticles]);
-
-
-
-    // Prepare data for Top Authors
-    const authorStats = useMemo(() => {
-        if (!articles || articles.length === 0) return [];
+    // Annual output — real years
+    const annualData = useMemo(() => {
         const counts = {};
         articles.forEach(a => {
-            const rawMeta = a.metadata;
-            const metadataList = Array.isArray(rawMeta) ? rawMeta : (rawMeta ? [rawMeta] : []);
-            metadataList
-                .filter(m => m.key === "dc.contributor.author")
-                .forEach(m => {
-                    const name = m.value;
-                    counts[name] = (counts[name] || 0) + 1;
-                });
+            const year = a.lastModified ? new Date(a.lastModified).getFullYear() : null;
+            if (year && year >= 2000 && year <= new Date().getFullYear())
+                counts[year] = (counts[year] || 0) + 1;
         });
         return Object.entries(counts)
-            .map(([name, count]) => ({ name, count }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 10); // Top 10 researchers
+            .map(([year, value]) => ({ name: String(year), value }))
+            .sort((a, b) => a.name.localeCompare(b.name));
     }, [articles]);
 
-    // Prepare data for Authorship Distribution
+    // Document type distribution
+    const docTypeData = useMemo(() => {
+        if (!articles.length) return [];
+        const counts = {};
+        articles.forEach(a => {
+            const type = a.type || 'Article';
+            counts[type] = (counts[type] || 0) + 1;
+        });
+        return Object.entries(counts)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+    }, [articles]);
+
+    // Authorship distribution
     const authorshipData = useMemo(() => {
-        if (!articles || articles.length === 0) return [];
+        if (!articles.length) return [];
         const distribution = {};
         articles.forEach(a => {
-            const rawMeta = a.metadata;
-            const metadataList = Array.isArray(rawMeta) ? rawMeta : (rawMeta ? [rawMeta] : []);
-            const authorCount = metadataList.filter(m => m.key === "dc.contributor.author").length;
+            const metadataList = Array.isArray(a.metadata) ? a.metadata : (a.metadata ? [a.metadata] : []);
+            const authorVal = metadataList.find(m => m.key === "dc.contributor.author")?.value || "";
+            const authorCount = authorVal ? authorVal.split(';').filter(s => s.trim()).length : 0;
             const key = authorCount > 5 ? '5+' : authorCount.toString();
             distribution[key] = (distribution[key] || 0) + 1;
         });
@@ -98,6 +49,34 @@ export default function Dashboard({ departments, articles, selectedDept, totalFa
             count: distribution[key]
         }));
     }, [articles]);
+
+    // Top UOB instructors — scoped to currently displayed articles (dept or faculty-wide)
+    const instructorStats = useMemo(() => {
+        if (!articles.length) return [];
+        const counts = {};
+        articles.forEach(a => {
+            const metaList = Array.isArray(a.metadata) ? a.metadata : (a.metadata ? [a.metadata] : []);
+            const instructorsVal = metaList.find(m => m.key === 'dc.contributor.uobinstructors')?.value;
+            if (instructorsVal) {
+                instructorsVal.split(';').map(s => s.trim()).filter(Boolean).forEach(name => {
+                    counts[name] = (counts[name] || 0) + 1;
+                });
+            }
+        });
+        return Object.entries(counts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10);
+    }, [articles]);
+
+    // Faculty overview bar chart (only shown when no dept selected)
+    const deptData = useMemo(() => {
+        return departments.map(d => ({
+            name: d.name.replace("Department of ", "").split(' ').map(w => w[0]).join(''),
+            fullName: d.name.replace("Department of ", ""),
+            value: parseInt(d.numberItems || 0)
+        })).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+    }, [departments]);
 
     return (
         <div className="fade-in">
@@ -108,52 +87,62 @@ export default function Dashboard({ departments, articles, selectedDept, totalFa
                 </div>
             </div>
 
-            <div className="stats-grid">
-                {stats.map((s, i) => (
-                    <div key={i} className="stat-card">
-                        <div className="stat-label">
-                            <s.icon size={16} style={{ marginBottom: "-3px", marginRight: "6px" }} />
-                            {s.label}
-                        </div>
-                        <div className="stat-value">{s.value}</div>
-                    </div>
-                ))}
-            </div>
+            {/* Three-column charts row */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
 
-            <div style={{ display: "grid", gridTemplateColumns: selectedDept ? "1fr 1fr" : "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
+                {/* Chart 1: Annual output */}
                 <div className="chart-container">
                     <h3 className="chart-title">Annual Research Output</h3>
-                    <div style={{ height: "300px" }}>
+                    <div style={{ height: "280px" }}>
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={deptData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                            <BarChart data={annualData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" />
-                                <YAxis />
+                                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                                <YAxis tick={{ fontSize: 10 }} />
                                 <Tooltip
-                                    contentStyle={{ background: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
                                 />
-                                <Bar dataKey="value" fill="var(--primary)" radius={[4, 4, 0, 0]}>
-                                    <LabelList dataKey="value" position="top" style={{ fill: 'var(--primary)', fontWeight: 'bold', fontSize: '12px' }} />
+                                <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+                                    <LabelList dataKey="value" position="top" style={{ fill: '#1e3a8a', fontWeight: 'bold', fontSize: '10px' }} />
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {!selectedDept && (
+                {/* Chart 2: dept bar or authorship */}
+                {!selectedDept ? (
                     <div className="chart-container">
-                        <h3 className="chart-title">Collaboration: Authors Per Paper</h3>
-                        <div style={{ height: "300px" }}>
+                        <h3 className="chart-title">Publications by Department</h3>
+                        <div style={{ height: "280px" }}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={authorshipData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={deptData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="name" />
-                                    <YAxis />
+                                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                                    <YAxis tick={{ fontSize: 10 }} />
                                     <Tooltip
-                                        contentStyle={{ background: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(value, _name, props) => [value, props.payload.fullName]}
+                                        contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
                                     />
-                                    <Bar dataKey="count" fill="var(--secondary)" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="count" position="top" style={{ fill: 'var(--primary)', fontWeight: 'bold', fontSize: '12px' }} />
+                                    <Bar dataKey="value" fill="#f59e0b" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="value" position="top" style={{ fill: '#b45309', fontWeight: 'bold', fontSize: '10px' }} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="chart-container">
+                        <h3 className="chart-title">Authors Per Paper</h3>
+                        <div style={{ height: "280px" }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={authorshipData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                                    <YAxis tick={{ fontSize: 10 }} />
+                                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
+                                    <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="count" position="top" style={{ fill: '#065f46', fontWeight: 'bold', fontSize: '10px' }} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
@@ -161,25 +150,21 @@ export default function Dashboard({ departments, articles, selectedDept, totalFa
                     </div>
                 )}
 
+                {/* Chart 3: type distribution */}
                 <div className="chart-container">
-                    <h3 className="chart-title">Research Distribution</h3>
-                    <div style={{ height: "300px" }}>
+                    <h3 className="chart-title">Publication Type Distribution</h3>
+                    <div style={{ height: "280px" }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={[
-                                        { name: 'Journals', value: 400 },
-                                        { name: 'Conferences', value: 300 },
-                                        { name: 'Theses', value: 150 },
-                                        { name: 'Patents', value: 50 },
-                                    ]}
+                                    data={docTypeData}
                                     innerRadius={60}
                                     outerRadius={80}
                                     paddingAngle={5}
                                     dataKey="value"
                                     label={({ name, value }) => `${name}: ${value}`}
                                 >
-                                    {COLORS.map((entry, index) => (
+                                    {docTypeData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
@@ -191,29 +176,32 @@ export default function Dashboard({ departments, articles, selectedDept, totalFa
                 </div>
             </div>
 
-            {articles.length > 0 && (
+            {/* Top instructors — always scoped to current articles (dept or all) */}
+            {instructorStats.length > 0 && (
                 <div className="chart-container" style={{ width: "100%" }}>
                     <h3 className="chart-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        Top Contributing Researchers
-                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600" }}>Based on {articles.length} publications</span>
+                        Top Contributing Instructors
+                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "500" }}>
+                            {selectedDept ? selectedDept.name.replace("Department of ", "") : "Faculty-Wide"} · {articles.length} publications
+                        </span>
                     </h3>
-                    <div style={{ height: "450px", marginTop: "1rem" }}>
+                    <div style={{ height: `${Math.max(300, instructorStats.length * 45)}px`, marginTop: "1rem" }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart
                                 layout="vertical"
-                                data={authorStats}
-                                margin={{ top: 5, right: 50, left: 50, bottom: 5 }}
+                                data={instructorStats}
+                                margin={{ top: 5, right: 60, left: 60, bottom: 5 }}
                             >
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                 <XAxis type="number" />
                                 <YAxis
                                     dataKey="name"
                                     type="category"
-                                    width={200}
-                                    tick={{ fontSize: 13, fontWeight: 700, fill: 'var(--primary)' }}
+                                    width={120}
+                                    tick={{ fontSize: 12, fontWeight: 600, fill: '#334155' }}
                                 />
                                 <Tooltip
-                                    contentStyle={{ background: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                    contentStyle={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                 />
                                 <Bar dataKey="count" fill="var(--primary)" radius={[0, 6, 6, 0]} barSize={25}>
                                     <LabelList dataKey="count" position="right" style={{ fill: 'var(--primary)', fontWeight: '900', fontSize: '14px' }} />
