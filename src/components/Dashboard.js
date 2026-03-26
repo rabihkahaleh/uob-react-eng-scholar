@@ -3,8 +3,10 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend, LabelList
 } from 'recharts';
+import paperThemes from "../data/paperThemes";
+import { themeMap, tracks } from "../data/facultyThemes";
 
-export default function Dashboard({ departments, articles, selectedDept }) {
+export default function Dashboard({ departments, articles, selectedDept, onSelectAuthor, onSelectDept, onSelectTheme }) {
     const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#f43f5e', '#06b6d4'];
 
     // Annual output — real years
@@ -66,7 +68,7 @@ export default function Dashboard({ departments, articles, selectedDept }) {
         return Object.entries(counts)
             .map(([name, count]) => ({ name, count }))
             .sort((a, b) => b.count - a.count)
-            .slice(0, 10);
+            .slice(0, 6);
     }, [articles]);
 
     // Faculty overview bar chart (only shown when no dept selected)
@@ -78,6 +80,28 @@ export default function Dashboard({ departments, articles, selectedDept }) {
         })).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
     }, [departments]);
 
+    // Research Tracks (Macro Level)
+    const trackStats = useMemo(() => {
+        if (!articles.length) return [];
+        const counts = {};
+        const uniqueIds = new Set();
+        articles.forEach(a => {
+            if (uniqueIds.has(a.id)) return;
+            uniqueIds.add(a.id);
+            const themeId = paperThemes[a.id];
+            if (themeId && themeMap[themeId]) {
+                const trackId = themeMap[themeId].trackId;
+                counts[trackId] = (counts[trackId] || 0) + 1;
+            }
+        });
+        return Object.entries(counts)
+            .map(([id, count]) => {
+                const track = tracks.find(t => t.id === id);
+                return { id, name: track?.name || id, count, color: track?.color || "#3b82f6" };
+            })
+            .sort((a, b) => b.count - a.count);
+    }, [articles]);
+
     return (
         <div className="fade-in">
             <div className="page-header">
@@ -87,7 +111,7 @@ export default function Dashboard({ departments, articles, selectedDept }) {
                 </div>
             </div>
 
-            {/* Three-column charts row */}
+            {/* Top charts row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
 
                 {/* Chart 1: Annual output */}
@@ -116,7 +140,7 @@ export default function Dashboard({ departments, articles, selectedDept }) {
                         <h3 className="chart-title">Publications by Department</h3>
                         <div style={{ height: "280px" }}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={deptData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
+                                <BarChart data={deptData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }} onClick={(state) => { if (state && state.activePayload && state.activePayload.length) { const fullName = state.activePayload[0].payload.fullName; onSelectDept && onSelectDept(fullName); } }} style={{ cursor: 'pointer' }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                     <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                                     <YAxis tick={{ fontSize: 10 }} />
@@ -124,8 +148,11 @@ export default function Dashboard({ departments, articles, selectedDept }) {
                                         formatter={(value, _name, props) => [value, props.payload.fullName]}
                                         contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
                                     />
-                                    <Bar dataKey="value" fill="#f59e0b" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="value" position="top" style={{ fill: '#b45309', fontWeight: 'bold', fontSize: '10px' }} />
+                                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                        {deptData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                        <LabelList dataKey="value" position="top" style={{ fill: '#475569', fontWeight: 'bold', fontSize: '10px' }} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
@@ -176,41 +203,70 @@ export default function Dashboard({ departments, articles, selectedDept }) {
                 </div>
             </div>
 
-            {/* Top instructors — always scoped to current articles (dept or all) */}
-            {instructorStats.length > 0 && (
-                <div className="chart-container" style={{ width: "100%" }}>
-                    <h3 className="chart-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        Top Contributing Instructors
-                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "500" }}>
-                            {selectedDept ? selectedDept.name.replace("Department of ", "") : "Faculty-Wide"} · {articles.length} publications
-                        </span>
-                    </h3>
-                    <div style={{ height: `${Math.max(300, instructorStats.length * 45)}px`, marginTop: "1rem" }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                                layout="vertical"
-                                data={instructorStats}
-                                margin={{ top: 5, right: 60, left: 60, bottom: 5 }}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                                <XAxis type="number" />
-                                <YAxis
-                                    dataKey="name"
-                                    type="category"
-                                    width={120}
-                                    tick={{ fontSize: 12, fontWeight: 600, fill: '#334155' }}
-                                />
-                                <Tooltip
-                                    contentStyle={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                />
-                                <Bar dataKey="count" fill="var(--primary)" radius={[0, 6, 6, 0]} barSize={25}>
-                                    <LabelList dataKey="count" position="right" style={{ fill: 'var(--primary)', fontWeight: '900', fontSize: '14px' }} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+            {/* Bottom charts row */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1.5rem" }}>
+                {/* Chart 4: All Research Tracks */}
+                {trackStats.length > 0 && (
+                    <div className="chart-container" style={{ gridColumn: "span 1", marginBottom: 0 }}>
+                        <h3 className="chart-title">Research Tracks Breakdown</h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginTop: "1rem" }}>
+                            {trackStats.map(t => (
+                                <div key={t.id} onClick={() => onSelectTheme && onSelectTheme(t.id)} style={{
+                                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    background: `${t.color}12`, borderLeft: `6px solid ${t.color}`,
+                                    padding: "1rem 1.25rem", borderRadius: "8px", cursor: "pointer",
+                                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                                }}>
+                                    <div style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.95rem" }}>
+                                        {t.name}
+                                    </div>
+                                    <div style={{ fontWeight: "900", color: t.color, fontSize: "1.1rem", background: "#fff", padding: "0.2rem 0.6rem", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                                        {t.count}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+
+                {/* Top instructors — always scoped to current articles (dept or all) */}
+                {instructorStats.length > 0 && (
+                    <div className="chart-container" style={{ gridColumn: "span 1", marginBottom: 0 }}>
+                        <h3 className="chart-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            Top Contributing Instructors
+                            <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "500", textTransform: "none", letterSpacing: "normal" }}>
+                                {selectedDept ? selectedDept.name.replace("Department of ", "") : "Faculty-Wide"} · {articles.length} publications
+                            </span>
+                        </h3>
+                        <div style={{ height: "320px", marginTop: "0.5rem" }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    layout="vertical"
+                                    data={instructorStats}
+                                    margin={{ top: 5, right: 60, left: 60, bottom: 5 }}
+                                    onClick={(state) => { if (state && state.activeLabel) { onSelectAuthor && onSelectAuthor(state.activeLabel); } }}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                    <XAxis type="number" />
+                                    <YAxis
+                                        dataKey="name"
+                                        type="category"
+                                        width={120}
+                                        tick={{ fontSize: 12, fontWeight: 600, fill: '#334155' }}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    />
+                                    <Bar dataKey="count" fill="var(--primary)" radius={[0, 6, 6, 0]} barSize={25}>
+                                        <LabelList dataKey="count" position="right" style={{ fill: 'var(--primary)', fontWeight: '900', fontSize: '14px' }} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

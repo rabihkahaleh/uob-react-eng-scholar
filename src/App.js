@@ -21,6 +21,7 @@ function App() {
   const [instructorSort, setInstructorSort] = useState("publications");
   const [instructorSortDir, setInstructorSortDir] = useState("desc");
   const [showThemes, setShowThemes] = useState(false);
+  const [initialThemeId, setInitialThemeId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
@@ -73,6 +74,7 @@ function App() {
     setSelectedAuthor(null);
     setSelectedArticle(null);
     setSearchTerm("");
+    setShowThemes(false);
   }, []);
 
   const handleSelectAuthor = useCallback((author) => {
@@ -80,6 +82,7 @@ function App() {
     setSelectedDept(null);
     setSelectedArticle(null);
     setSearchTerm("");
+    setShowThemes(false);
   }, []);
 
   async function handleSelectArticle(article) {
@@ -93,6 +96,16 @@ function App() {
   }
 
   const goHome = () => {
+    setSelectedDept(null);
+    setSelectedAuthor(null);
+    setSelectedArticle(null);
+    setSearchTerm("");
+    setShowThemes(false);
+  };
+
+  const handleShowThemes = (themeId = null) => {
+    setShowThemes(true);
+    setInitialThemeId(themeId && typeof themeId === 'string' ? themeId : null);
     setSelectedDept(null);
     setSelectedAuthor(null);
     setSelectedArticle(null);
@@ -172,13 +185,23 @@ function App() {
         <nav style={{ overflowY: "auto", flex: 1, marginRight: sidebarOpen ? "-1rem" : "0", paddingRight: sidebarOpen ? "1rem" : "0" }}>
           <ul className="nav-list">
             <li
-              className={`nav-item ${!selectedDept && !selectedAuthor ? "active" : ""}`}
+              className={`nav-item ${!selectedDept && !selectedAuthor && !showThemes ? "active" : ""}`}
               onClick={goHome}
               title={!sidebarOpen ? "Faculty Overview" : undefined}
               style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem" }}
             >
               <Home size={18} />
               {sidebarOpen && " Faculty Overview"}
+            </li>
+
+            <li
+              className={`nav-item ${showThemes ? "active" : ""}`}
+              onClick={handleShowThemes}
+              title={!sidebarOpen ? "Research Themes" : undefined}
+              style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem" }}
+            >
+              <BookMarked size={18} />
+              {sidebarOpen && " Research Themes"}
             </li>
 
             {sidebarOpen && (
@@ -301,7 +324,7 @@ function App() {
                 {authorsList.map((author) => (
                   <li
                     key={author.name}
-                    className={`nav-item ${selectedAuthor?.name === author.name ? "active" : ""}`}
+                    className={`nav-item ${selectedAuthor?.name === author.name && !showThemes ? "active" : ""}`}
                     onClick={() => handleSelectAuthor(author)}
                     title={author.name}
                     style={{ justifyContent: "center", padding: "0.65rem" }}
@@ -328,7 +351,13 @@ function App() {
 
       {/* Main Content */}
       <main className="main-content">
-        {selectedAuthor ? (
+        {showThemes ? (
+          <ThemeDashboard
+            articles={allArticles}
+            onSelectArticle={handleSelectArticle}
+            initialThemeId={initialThemeId}
+          />
+        ) : selectedAuthor ? (
           <AuthorDashboard
             authorName={selectedAuthor.name}
             articles={allArticles}
@@ -340,21 +369,16 @@ function App() {
               departments={departments}
               selectedDept={selectedDept}
               articles={currentArticles}
+              onSelectAuthor={(name) => {
+                const a = authorsList.find(x => x.name === name);
+                if (a) handleSelectAuthor(a);
+              }}
+              onSelectDept={(fullName) => {
+                const d = departments.find(x => x.fullName === fullName || x.name === fullName);
+                if (d) handleSelectDepartment(d);
+              }}
+              onSelectTheme={handleShowThemes}
             />
-
-            <div className="fade-in" style={{ marginTop: "3rem" }}>
-              <div className="section-divider">
-                <h2>{selectedDept ? `${selectedDept.name} Publications` : "Faculty-Wide Research Discovery"}</h2>
-                <div className="line"></div>
-              </div>
-              <ArticleList
-                articles={allArticles}
-                currentDeptId={selectedDept?.id}
-                onSelect={handleSelectArticle}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-              />
-            </div>
           </>
         )}
 
