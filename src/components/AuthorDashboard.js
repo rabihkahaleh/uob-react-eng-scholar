@@ -63,13 +63,25 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
 
   // Search + pagination for papers list
   const [paperSearch, setPaperSearch] = useState("");
+  const [sortOption, setSortOption] = useState("date");
   const [page, setPage] = useState(1);
   const perPage = 12;
 
   const filteredPapers = useMemo(() => {
     const sorted = authorPapers
       .slice()
-      .sort((a, b) => (b.lastModified || "").localeCompare(a.lastModified || ""));
+      .sort((a, b) => {
+        if (sortOption === "citations") {
+          const getCitations = (item) => {
+            const metaList = Array.isArray(item.metadata) ? item.metadata : [];
+            return parseInt(metaList.find(m => m.key === "dc.relation.citedby")?.value || "0", 10);
+          };
+          return getCitations(b) - getCitations(a);
+        } else {
+          return (b.lastModified || "").localeCompare(a.lastModified || "");
+        }
+      });
+      
     if (!paperSearch.trim()) return sorted;
     const term = paperSearch.toLowerCase();
     return sorted.filter(a => {
@@ -82,7 +94,7 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
         authors.toLowerCase().includes(term)
       );
     });
-  }, [authorPapers, paperSearch]);
+  }, [authorPapers, paperSearch, sortOption]);
 
   const totalPages = Math.ceil(filteredPapers.length / perPage);
   const pagedPapers = useMemo(
@@ -175,31 +187,52 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
           <div className="line" />
         </div>
 
-        {/* Paper search */}
-        <div style={{ position: "relative", maxWidth: "480px", marginBottom: "1.25rem" }}>
-          <Search size={15} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "#475569" }} />
-          <input
-            type="text"
-            placeholder="Search by title, journal, or author..."
-            value={paperSearch}
-            onChange={e => { setPaperSearch(e.target.value); setPage(1); }}
-            style={{
-              width: "100%", padding: "0.6rem 1rem 0.6rem 2.5rem",
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: "10px", color: "#0f172a",
-              fontSize: "0.85rem", outline: "none", fontFamily: "inherit"
-            }}
-          />
-          {paperSearch && (
-            <span style={{
-              position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)",
-              fontSize: "0.7rem", fontWeight: "800", color: "#b45309",
-              background: "rgba(217,119,6,0.12)", padding: "0.15rem 0.5rem", borderRadius: "20px"
-            }}>
-              {filteredPapers.length} found
-            </span>
-          )}
+        {/* Paper search and sort */}
+        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.25rem", flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ position: "relative", flex: 1, minWidth: "250px", maxWidth: "480px" }}>
+            <Search size={15} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "#475569" }} />
+            <input
+              type="text"
+              placeholder="Search by title, journal, or author..."
+              value={paperSearch}
+              onChange={e => { setPaperSearch(e.target.value); setPage(1); }}
+              style={{
+                width: "100%", padding: "0.6rem 1rem 0.6rem 2.5rem",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "10px", color: "#0f172a",
+                fontSize: "0.85rem", outline: "none", fontFamily: "inherit"
+              }}
+            />
+            {paperSearch && (
+              <span style={{
+                position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)",
+                fontSize: "0.7rem", fontWeight: "800", color: "#b45309",
+                background: "rgba(217,119,6,0.12)", padding: "0.15rem 0.5rem", borderRadius: "20px"
+              }}>
+                {filteredPapers.length} found
+              </span>
+            )}
+          </div>
+          
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600" }}>Sort by:</span>
+            <select
+              value={sortOption}
+              onChange={e => { setSortOption(e.target.value); setPage(1); }}
+              style={{
+                padding: "0.5rem 1rem",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px", color: "#0f172a",
+                fontSize: "0.85rem", outline: "none", fontFamily: "inherit",
+                cursor: "pointer"
+              }}
+            >
+              <option value="date">Newest First</option>
+              <option value="citations">Most Cited</option>
+            </select>
+          </div>
         </div>
 
         <div className="article-grid">
