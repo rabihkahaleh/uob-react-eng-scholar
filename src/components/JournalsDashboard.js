@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
-import { BarChart2, BookOpen, Search, ChevronLeft, X } from "lucide-react";
+import { BarChart2, BookOpen, Search, ChevronLeft, X, Download } from "lucide-react";
 
 export default function JournalsDashboard({ articles, onSelectArticle }) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("count"); // "count" | "alpha"
   const [selectedJournal, setSelectedJournal] = useState(null);
   const [paperSearch, setPaperSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(1);       // papers pagination
+  const [journalPage, setJournalPage] = useState(1); // journals list pagination
   const perPage = 12;
+  const perJournalPage = 24;
 
   // Build journal → {count, citations, papers[]} map
   const journalsMap = useMemo(() => {
@@ -38,8 +40,60 @@ export default function JournalsDashboard({ articles, onSelectArticle }) {
     return list.sort((a, b) => b.count - a.count);
   }, [journalsMap, search, sortBy]);
 
+  // Reset journal page when search or sort changes
+  const totalJournalPages = Math.ceil(journalsList.length / perJournalPage);
+  const pagedJournals = journalsList.slice((journalPage - 1) * perJournalPage, journalPage * perJournalPage);
+  const maxBarCount = journalsList[0]?.count || 1;
+
   const totalJournals = Object.keys(journalsMap).length;
   const totalPapers = articles.length;
+
+  // Export journals list to CSV
+  const exportJournals = () => {
+    const headers = ["Journal", "Papers", "Citations"];
+    const rows = journalsList.map(j =>
+      [`"${j.name.replace(/"/g, '""')}"`, j.count, j.citations].join(",")
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "UOB_Journals.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  // Export papers of selected journal to CSV
+  const exportJournalPapers = () => {
+    if (!selectedJournal || !journalPapers.length) return;
+    const headers = ["Title", "Type", "Year", "Authors", "Source", "DOI", "Scopus Link", "Citations"];
+    const rows = journalPapers.map(a => {
+      const metaList = Array.isArray(a.metadata) ? a.metadata : [];
+      const getMeta = key => metaList.find(m => m.key === key)?.value || "";
+      const year = a.lastModified ? new Date(a.lastModified).getFullYear() : "";
+      return [
+        `"${(a.name || "").replace(/"/g, '""')}"`,
+        `"${(a.type || "Article").replace(/"/g, '""')}"`,
+        year,
+        `"${getMeta("dc.contributor.author").replace(/"/g, '""')}"`,
+        `"${getMeta("dc.source").replace(/"/g, '""')}"`,
+        `"${getMeta("dc.identifier.doi")}"`,
+        `"${getMeta("dc.identifier.scopus")}"`,
+        getMeta("dc.relation.citedby") || "0"
+      ].join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${selectedJournal.replace(/[^a-z0-9]/gi, "_")}_Papers.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
 
   // Papers for selected journal
   const journalPapers = useMemo(() => {
@@ -89,13 +143,30 @@ export default function JournalsDashboard({ articles, onSelectArticle }) {
             >
               <ChevronLeft size={15} /> Back to all journals
             </button>
-            <div style={{ fontWeight: "800", fontSize: "1.05rem", color: "var(--text-main)", marginBottom: "0.35rem" }}>
-              {selectedJournal}
-            </div>
-            <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontWeight: "600", display: "flex", gap: "0.75rem" }}>
-              <span>{journalsMap[selectedJournal]?.count} paper{journalsMap[selectedJournal]?.count !== 1 ? "s" : ""}</span>
-              <span style={{ color: "var(--border)" }}>|</span>
-              <span>{journalsMap[selectedJournal]?.citations} total citations</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ fontWeight: "800", fontSize: "1.05rem", color: "var(--text-main)", marginBottom: "0.35rem" }}>
+                  {selectedJournal}
+                </div>
+                <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontWeight: "600", display: "flex", gap: "0.75rem" }}>
+                  <span>{journalsMap[selectedJournal]?.count} paper{journalsMap[selectedJournal]?.count !== 1 ? "s" : ""}</span>
+                  <span style={{ color: "var(--border)" }}>|</span>
+                  <span>{journalsMap[selectedJournal]?.citations} total citations</span>
+                </div>
+              </div>
+              <button
+                onClick={exportJournalPapers}
+                style={{
+                  padding: "0.45rem 0.8rem", background: "#f8fafc", color: "#334155",
+                  border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.75rem", fontWeight: "700",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.2s", flexShrink: 0
+                }}
+                onMouseOver={e => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.borderColor = "#94a3b8"; }}
+                onMouseOut={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
+              >
+                <Download size={14} /> Export to Excel
+              </button>
             </div>
           </div>
 
@@ -186,7 +257,7 @@ export default function JournalsDashboard({ articles, onSelectArticle }) {
                 type="text"
                 placeholder="Search journals by name..."
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => { setSearch(e.target.value); setJournalPage(1); }}
                 style={{
                   width: "100%", padding: "0.65rem 1rem 0.65rem 2.5rem",
                   border: "1px solid #e2e8f0", borderRadius: "10px",
@@ -205,7 +276,7 @@ export default function JournalsDashboard({ articles, onSelectArticle }) {
 
             <div style={{ display: "flex", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden" }}>
               {[{ value: "count", label: "Most Papers" }, { value: "alpha", label: "A–Z" }].map(opt => (
-                <button key={opt.value} onClick={() => setSortBy(opt.value)}
+                <button key={opt.value} onClick={() => { setSortBy(opt.value); setJournalPage(1); }}
                   style={{
                     padding: "0.6rem 1.1rem", border: "none", cursor: "pointer",
                     background: sortBy === opt.value ? "var(--primary)" : "transparent",
@@ -222,6 +293,21 @@ export default function JournalsDashboard({ articles, onSelectArticle }) {
                 {journalsList.length} result{journalsList.length !== 1 ? "s" : ""}
               </span>
             )}
+
+            <button
+              onClick={exportJournals}
+              style={{
+                marginLeft: "auto",
+                padding: "0.6rem 1rem", background: "#f8fafc", color: "#334155",
+                border: "1px solid #cbd5e1", borderRadius: "10px", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.82rem", fontWeight: "700",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.2s"
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.borderColor = "#94a3b8"; }}
+              onMouseOut={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
+            >
+              <Download size={14} /> Export to Excel
+            </button>
           </div>
 
           {/* Journals grid */}
@@ -233,8 +319,8 @@ export default function JournalsDashboard({ articles, onSelectArticle }) {
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "1rem" }}>
-              {journalsList.map((j, idx) => {
-                const barWidth = Math.max(6, Math.round((j.count / journalsList[0].count) * 100));
+              {pagedJournals.map((j) => {
+                const barWidth = Math.max(6, Math.round((j.count / maxBarCount) * 100));
                 return (
                   <div
                     key={j.name}
@@ -279,6 +365,52 @@ export default function JournalsDashboard({ articles, onSelectArticle }) {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Journals list pagination */}
+          {totalJournalPages > 1 && (
+            <div style={{
+              display: "flex", justifyContent: "center", alignItems: "center",
+              gap: "1rem", marginTop: "1.5rem",
+              padding: "0.75rem 1.25rem",
+              background: "#fff",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0"
+            }}>
+              <button
+                disabled={journalPage === 1}
+                onClick={() => setJournalPage(p => p - 1)}
+                style={{
+                  display: "flex", alignItems: "center", gap: "0.3rem",
+                  padding: "0.4rem 0.9rem", borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                  background: journalPage === 1 ? "transparent" : "rgba(59,130,246,0.1)",
+                  color: journalPage === 1 ? "#94a3b8" : "#1e3a8a",
+                  cursor: journalPage === 1 ? "not-allowed" : "pointer",
+                  fontWeight: "600", fontSize: "0.85rem"
+                }}
+              >
+                ← Prev
+              </button>
+              <span style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: "600" }}>
+                Page {journalPage} of {totalJournalPages} · {journalsList.length} journals
+              </span>
+              <button
+                disabled={journalPage === totalJournalPages}
+                onClick={() => setJournalPage(p => p + 1)}
+                style={{
+                  display: "flex", alignItems: "center", gap: "0.3rem",
+                  padding: "0.4rem 0.9rem", borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                  background: journalPage === totalJournalPages ? "transparent" : "rgba(59,130,246,0.1)",
+                  color: journalPage === totalJournalPages ? "#94a3b8" : "#1e3a8a",
+                  cursor: journalPage === totalJournalPages ? "not-allowed" : "pointer",
+                  fontWeight: "600", fontSize: "0.85rem"
+                }}
+              >
+                Next →
+              </button>
             </div>
           )}
         </div>
