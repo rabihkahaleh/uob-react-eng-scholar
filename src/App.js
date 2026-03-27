@@ -3,9 +3,9 @@ import { getDepartments, getArticles, getArticleMetadata } from "./api";
 import Dashboard from "./components/Dashboard";
 import AuthorDashboard from "./components/AuthorDashboard";
 import ThemeDashboard from "./components/ThemeDashboard";
-import ArticleList from "./components/ArticleList";
+import JournalsDashboard from "./components/JournalsDashboard";
 import ArticleDetails from "./components/ArticleDetails";
-import { GraduationCap, Home, Loader2, User, Search, PanelLeftClose, PanelLeftOpen, ArrowUp, ArrowDown, BookMarked } from "lucide-react";
+import { GraduationCap, Home, Loader2, User, Search, PanelLeftClose, PanelLeftOpen, ArrowUp, ArrowDown, BookMarked, Newspaper } from "lucide-react";
 
 function App() {
   const [departments, setDepartments] = useState([]);
@@ -21,6 +21,7 @@ function App() {
   const [instructorSort, setInstructorSort] = useState("publications");
   const [instructorSortDir, setInstructorSortDir] = useState("desc");
   const [showThemes, setShowThemes] = useState(false);
+  const [showJournals, setShowJournals] = useState(false);
   const [initialThemeId, setInitialThemeId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -75,6 +76,7 @@ function App() {
     setSelectedArticle(null);
     setSearchTerm("");
     setShowThemes(false);
+    setShowJournals(false);
   }, []);
 
   const handleSelectAuthor = useCallback((author) => {
@@ -83,6 +85,7 @@ function App() {
     setSelectedArticle(null);
     setSearchTerm("");
     setShowThemes(false);
+    setShowJournals(false);
   }, []);
 
   async function handleSelectArticle(article) {
@@ -101,11 +104,22 @@ function App() {
     setSelectedArticle(null);
     setSearchTerm("");
     setShowThemes(false);
+    setShowJournals(false);
   };
 
   const handleShowThemes = (themeId = null) => {
     setShowThemes(true);
+    setShowJournals(false);
     setInitialThemeId(themeId && typeof themeId === 'string' ? themeId : null);
+    setSelectedDept(null);
+    setSelectedAuthor(null);
+    setSelectedArticle(null);
+    setSearchTerm("");
+  };
+
+  const handleShowJournals = () => {
+    setShowJournals(true);
+    setShowThemes(false);
     setSelectedDept(null);
     setSelectedAuthor(null);
     setSelectedArticle(null);
@@ -202,6 +216,16 @@ function App() {
             >
               <BookMarked size={18} />
               {sidebarOpen && " Research Themes"}
+            </li>
+
+            <li
+              className={`nav-item ${showJournals ? "active" : ""}`}
+              onClick={handleShowJournals}
+              title={!sidebarOpen ? "Journals" : undefined}
+              style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem" }}
+            >
+              <Newspaper size={18} />
+              {sidebarOpen && " Journals"}
             </li>
 
             {sidebarOpen && (
@@ -356,6 +380,11 @@ function App() {
             articles={allArticles}
             onSelectArticle={handleSelectArticle}
             initialThemeId={initialThemeId}
+          />
+        ) : showJournals ? (
+          <JournalsDashboard
+            articles={allArticles}
+            onSelectArticle={handleSelectArticle}
           />
         ) : selectedAuthor ? (
           <AuthorDashboard

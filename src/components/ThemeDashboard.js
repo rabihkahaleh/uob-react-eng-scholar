@@ -9,6 +9,7 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
   const [paperSearch, setPaperSearch] = useState("");
   const [sortOption, setSortOption] = useState("date");
   const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("publications");
   const perPage = 12;
 
   // Build themeId → articles mapping
@@ -94,6 +95,20 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
     () => selectedArticles.slice((page - 1) * perPage, page * perPage),
     [selectedArticles, page]
   );
+  
+  const journalsData = useMemo(() => {
+    if (!baseSelectedArticles || activeTab !== "journals") return [];
+    const counts = {};
+    baseSelectedArticles.forEach(a => {
+      const metaList = Array.isArray(a.metadata) ? a.metadata : [];
+      let source = metaList.find(m => m.key === "dc.source")?.value || "Unknown Journal";
+      source = source.trim();
+      counts[source] = (counts[source] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [baseSelectedArticles, activeTab]);
   
   const selectedTheme = selectedThemeId ? themeMap[selectedThemeId] : null;
 
@@ -183,7 +198,7 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
                         return (
                           <div
                             key={theme.id}
-                            onClick={() => { setSelectedThemeId(isSelected ? null : theme.id); setPage(1); }}
+                            onClick={() => { setSelectedThemeId(isSelected ? null : theme.id); setPage(1); setActiveTab("publications"); }}
                             style={{ padding: "0.65rem 1rem 0.65rem 2rem",
                               cursor: tCount > 0 ? "pointer" : "default",
                               background: isSelected ? `${track.color}15` : "transparent",
@@ -301,6 +316,44 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
                   </div>
                 </div>
 
+                {/* Tabs */}
+                <div style={{ display: "flex", gap: "1.5rem", borderBottom: "1px solid #e2e8f0", marginBottom: "1.5rem", padding: "0 0.5rem" }}>
+                  <button
+                    onClick={() => setActiveTab("publications")}
+                    style={{
+                      padding: "0.75rem 0.5rem",
+                      background: "none",
+                      border: "none",
+                      borderBottom: activeTab === "publications" ? `2px solid ${selectedTheme?.color || "#3b82f6"}` : "2px solid transparent",
+                      color: activeTab === "publications" ? "#0f172a" : "#64748b",
+                      fontWeight: activeTab === "publications" ? "700" : "600",
+                      cursor: "pointer",
+                      fontSize: "0.9rem",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    Publications
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("journals")}
+                    style={{
+                      padding: "0.75rem 0.5rem",
+                      background: "none",
+                      border: "none",
+                      borderBottom: activeTab === "journals" ? `2px solid ${selectedTheme?.color || "#3b82f6"}` : "2px solid transparent",
+                      color: activeTab === "journals" ? "#0f172a" : "#64748b",
+                      fontWeight: activeTab === "journals" ? "700" : "600",
+                      cursor: "pointer",
+                      fontSize: "0.9rem",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    Journals
+                  </button>
+                </div>
+
+                {activeTab === "publications" ? (
+                  <>
                 {/* Search and sort filters */}
                 <div style={{ display: "flex", gap: "1rem", marginBottom: "1.25rem", flexWrap: "wrap", alignItems: "center" }}>
                   <div style={{ position: "relative", flex: 1, minWidth: "250px", maxWidth: "480px" }}>
@@ -436,6 +489,25 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
                     >
                       Next <ChevronRight size={15} />
                     </button>
+                  </div>
+                )}
+                  </>
+                ) : (
+                  <div className="fade-in">
+                    {journalsData.length === 0 ? (
+                      <div style={{ background: "#fff", border: "1px dashed var(--border)", borderRadius: "12px", padding: "2rem", textAlign: "center" }}>
+                        <p style={{ color: "var(--text-muted)" }}>No journal data available.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+                        {journalsData.map(j => (
+                          <div key={j.name} style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                            <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--text-main)", flex: 1, paddingRight: "1rem", lineHeight: "1.4" }}>{j.name}</span>
+                            <span style={{ background: `${selectedTheme?.color || "#3b82f6"}15`, color: selectedTheme?.color || "#3b82f6", fontWeight: "800", fontSize: "0.8rem", padding: "0.25rem 0.6rem", borderRadius: "20px" }}>{j.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

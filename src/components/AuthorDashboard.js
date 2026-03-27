@@ -75,6 +75,7 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
   const [sortOption, setSortOption] = useState("date");
   const [page, setPage] = useState(1);
   const [selectedThemeId, setSelectedThemeId] = useState(null);
+  const [activeTab, setActiveTab] = useState("publications");
   const perPage = 12;
 
   // Group author papers by theme
@@ -147,6 +148,21 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
     () => filteredPapers.slice((page - 1) * perPage, page * perPage),
     [filteredPapers, page]
   );
+
+  const journalsData = useMemo(() => {
+    const source_papers = selectedThemeId ? (themePapersMap[selectedThemeId] || []) : authorPapers;
+    if (!source_papers.length) return [];
+    const counts = {};
+    source_papers.forEach(a => {
+      const metaList = Array.isArray(a.metadata) ? a.metadata : [];
+      let source = metaList.find(m => m.key === "dc.source")?.value || "Unknown Journal";
+      source = source.trim();
+      counts[source] = (counts[source] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [authorPapers, selectedThemeId, themePapersMap]);
 
   return (
     <div className="fade-in">
@@ -229,76 +245,115 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
       {/* Lower Section: Themes Tabs & Papers List */}
       <div style={{ display: "grid", gridTemplateColumns: authorThemes.length > 0 ? "280px 1fr" : "1fr", gap: "2rem", marginTop: "1.5rem" }}>
         
-        {/* Left Column: Themes Tabs */}
+        {/* Left Column: Tab switcher + either Themes or Journals list */}
         {authorThemes.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-            <h3 style={{ fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", color: "var(--text-main)" }}>
+            <h3 style={{ fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem", color: "var(--text-main)" }}>
               <Tag size={16} /> Research Themes
             </h3>
-            
-            <div
-              onClick={() => { setSelectedThemeId(null); setPage(1); }}
-              style={{
-                padding: "0.75rem 1rem",
-                background: selectedThemeId === null ? "var(--primary)" : "#ffffff",
-                color: selectedThemeId === null ? "#ffffff" : "#475569",
-                border: "1px solid",
-                borderColor: selectedThemeId === null ? "var(--primary)" : "#e2e8f0",
-                borderRadius: "10px",
-                cursor: "pointer",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                transition: "all 0.2s",
-                fontWeight: selectedThemeId === null ? "700" : "600",
-                fontSize: "0.85rem",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-              }}
-            >
-              <span>All Publications</span>
-              <span style={{ fontSize: "0.7rem", fontWeight: "800", background: selectedThemeId === null ? "rgba(255,255,255,0.25)" : "#f1f5f9", color: selectedThemeId === null ? "#fff" : "#475569", padding: "0.15rem 0.5rem", borderRadius: "20px" }}>
-                {stats.totalPapers}
-              </span>
+
+            {/* Tab switcher under Research Themes heading */}
+            <div style={{ display: "flex", gap: "0", borderBottom: "1px solid #e2e8f0", marginBottom: "0.25rem" }}>
+              <button
+                onClick={() => setActiveTab("publications")}
+                style={{
+                  flex: 1, padding: "0.5rem 0.25rem", background: "none", border: "none",
+                  borderBottom: activeTab === "publications" ? `2px solid var(--primary)` : "2px solid transparent",
+                  color: activeTab === "publications" ? "var(--primary)" : "#64748b",
+                  fontWeight: activeTab === "publications" ? "700" : "600",
+                  cursor: "pointer", fontSize: "0.78rem", transition: "all 0.2s"
+                }}
+              >Publications</button>
+              <button
+                onClick={() => setActiveTab("journals")}
+                style={{
+                  flex: 1, padding: "0.5rem 0.25rem", background: "none", border: "none",
+                  borderBottom: activeTab === "journals" ? `2px solid var(--primary)` : "2px solid transparent",
+                  color: activeTab === "journals" ? "var(--primary)" : "#64748b",
+                  fontWeight: activeTab === "journals" ? "700" : "600",
+                  cursor: "pointer", fontSize: "0.78rem", transition: "all 0.2s"
+                }}
+              >Journals</button>
             </div>
 
-            {authorThemes.map(t => (
-              <div
-                key={t.themeId}
-                onClick={() => { setSelectedThemeId(t.themeId); setPage(1); }}
-                style={{
-                  padding: "0.75rem 1rem",
-                  background: selectedThemeId === t.themeId ? `${t.color}10` : "#ffffff",
-                  border: "1px solid",
-                  borderColor: selectedThemeId === t.themeId ? t.color : "#e2e8f0",
-                  borderLeft: selectedThemeId === t.themeId ? `4px solid ${t.color}` : `1px solid #e2e8f0`,
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.35rem",
-                  transition: "all 0.2s",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <span style={{ fontSize: "0.8rem", fontWeight: selectedThemeId === t.themeId ? "700" : "600", color: selectedThemeId === t.themeId ? "#0f172a" : "#475569", lineHeight: "1.3", paddingRight: "0.5rem" }}>
-                    {t.name}
+            {activeTab === "publications" ? (
+              <>
+                <div
+                  onClick={() => { setSelectedThemeId(null); setPage(1); }}
+                  style={{
+                    padding: "0.75rem 1rem",
+                    background: selectedThemeId === null ? "var(--primary)" : "#ffffff",
+                    color: selectedThemeId === null ? "#ffffff" : "#475569",
+                    border: "1px solid",
+                    borderColor: selectedThemeId === null ? "var(--primary)" : "#e2e8f0",
+                    borderRadius: "10px", cursor: "pointer",
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    transition: "all 0.2s",
+                    fontWeight: selectedThemeId === null ? "700" : "600",
+                    fontSize: "0.85rem", boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                  }}
+                >
+                  <span>All Publications</span>
+                  <span style={{ fontSize: "0.7rem", fontWeight: "800", background: selectedThemeId === null ? "rgba(255,255,255,0.25)" : "#f1f5f9", color: selectedThemeId === null ? "#fff" : "#475569", padding: "0.15rem 0.5rem", borderRadius: "20px" }}>
+                    {stats.totalPapers}
                   </span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.2rem" }}>
-                  <span style={{ fontSize: "0.65rem", fontWeight: "800", color: t.color, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {t.trackName} · {t.themeId}
-                  </span>
-                  <span style={{ fontSize: "0.7rem", fontWeight: "800", background: selectedThemeId === t.themeId ? t.color : "#f1f5f9", color: selectedThemeId === t.themeId ? "#fff" : "#475569", padding: "0.15rem 0.5rem", borderRadius: "20px" }}>
-                    {t.paperCount}
-                  </span>
-                </div>
+
+                {authorThemes.map(t => (
+                  <div
+                    key={t.themeId}
+                    onClick={() => { setSelectedThemeId(t.themeId); setPage(1); }}
+                    style={{
+                      padding: "0.75rem 1rem",
+                      background: selectedThemeId === t.themeId ? `${t.color}10` : "#ffffff",
+                      border: "1px solid",
+                      borderColor: selectedThemeId === t.themeId ? t.color : "#e2e8f0",
+                      borderLeft: selectedThemeId === t.themeId ? `4px solid ${t.color}` : `1px solid #e2e8f0`,
+                      borderRadius: "10px", cursor: "pointer",
+                      display: "flex", flexDirection: "column", gap: "0.35rem",
+                      transition: "all 0.2s", boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <span style={{ fontSize: "0.8rem", fontWeight: selectedThemeId === t.themeId ? "700" : "600", color: selectedThemeId === t.themeId ? "#0f172a" : "#475569", lineHeight: "1.3", paddingRight: "0.5rem" }}>
+                        {t.name}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.2rem" }}>
+                      <span style={{ fontSize: "0.65rem", fontWeight: "800", color: t.color, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        {t.trackName} · {t.themeId}
+                      </span>
+                      <span style={{ fontSize: "0.7rem", fontWeight: "800", background: selectedThemeId === t.themeId ? t.color : "#f1f5f9", color: selectedThemeId === t.themeId ? "#fff" : "#475569", padding: "0.15rem 0.5rem", borderRadius: "20px" }}>
+                        {t.paperCount}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              /* Journals breakdown list */
+              <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {journalsData.length === 0 ? (
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", padding: "1rem 0" }}>No journal data available.</p>
+                ) : (
+                  journalsData.map(j => (
+                    <div key={j.name} style={{
+                      background: "#fff", border: "1px solid var(--border)", borderRadius: "10px",
+                      padding: "0.7rem 1rem", display: "flex", justifyContent: "space-between",
+                      alignItems: "center", boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                    }}>
+                      <span style={{ fontSize: "0.78rem", fontWeight: "600", color: "var(--text-main)", flex: 1, paddingRight: "0.75rem", lineHeight: "1.4" }}>{j.name}</span>
+                      <span style={{ background: "var(--primary)", color: "#fff", fontWeight: "800", fontSize: "0.75rem", padding: "0.2rem 0.55rem", borderRadius: "20px", flexShrink: 0 }}>{j.count}</span>
+                    </div>
+                  ))
+                )}
               </div>
-            ))}
+            )}
           </div>
         )}
 
-        {/* Right Column: Papers List */}
+        {/* Right Column: Papers List — only shown in Publications mode */}
+        {activeTab === "publications" && (
         <div key={selectedThemeId || 'all'} className="fade-in">
           <div className="section-divider" style={{ margin: "0 0 1.5rem 0" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", width: "100%" }}>
@@ -487,6 +542,7 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

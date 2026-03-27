@@ -68,7 +68,7 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
         return Object.entries(counts)
             .map(([name, count]) => ({ name, count }))
             .sort((a, b) => b.count - a.count)
-            .slice(0, 6);
+            .slice(0, 10);
     }, [articles]);
 
     // Faculty overview bar chart (only shown when no dept selected)
@@ -238,7 +238,7 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
                                 {selectedDept ? selectedDept.name.replace("Department of ", "") : "Faculty-Wide"} · {articles.length} publications
                             </span>
                         </h3>
-                        <div style={{ height: "320px", marginTop: "0.5rem" }}>
+                        <div style={{ height: "420px", marginTop: "0.5rem" }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart
                                     layout="vertical"
@@ -253,13 +253,16 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
                                         dataKey="name"
                                         type="category"
                                         width={120}
-                                        tick={{ fontSize: 12, fontWeight: 600, fill: '#334155' }}
+                                        tick={{ fontSize: 11, fontWeight: 600, fill: '#334155' }}
                                     />
                                     <Tooltip
                                         contentStyle={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                     />
-                                    <Bar dataKey="count" fill="var(--primary)" radius={[0, 6, 6, 0]} barSize={25}>
-                                        <LabelList dataKey="count" position="right" style={{ fill: 'var(--primary)', fontWeight: '900', fontSize: '14px' }} />
+                                    <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={20}>
+                                        {instructorStats.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                        <LabelList dataKey="count" position="right" style={{ fill: '#475569', fontWeight: '900', fontSize: '13px' }} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
