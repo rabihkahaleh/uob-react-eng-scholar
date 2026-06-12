@@ -82,11 +82,15 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
   const themePapersMap = useMemo(() => {
     const map = {};
     authorPapers.forEach(a => {
-      const themeId = paperThemes[a.id];
-      if (themeId && themeMap[themeId]) {
-        if (!map[themeId]) map[themeId] = [];
-        map[themeId].push(a);
-      }
+      const themeIds = paperThemes[a.id];
+      if (!themeIds) return;
+      const themes = Array.isArray(themeIds) ? themeIds : [themeIds];
+      themes.forEach(themeId => {
+        if (themeId && themeMap[themeId]) {
+          if (!map[themeId]) map[themeId] = [];
+          map[themeId].push(a);
+        }
+      });
     });
     return map;
   }, [authorPapers]);

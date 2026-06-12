@@ -394,6 +394,23 @@ const paperThemes = {
   "2-s2.0-85189623697": "CV5.2",
   "2-s2.0-84921534080": "CV3.5",
   "2-s2.0-42749108761": "CV3.3",
-  "2-s2.0-84906908501": "CV3.5"
+  "2-s2.0-84906908501": "CV3.5",
+  // Sustainability for Engineering papers
+  "2-s2.0-105019931932": "ST1.1", // Bioengineered Skin Microbiome - Miscellaneous
+  "2-s2.0-85147512545": "ST1.2", // Engineering Students' Sustainability Awareness - Education
+  "2-s2.0-86000331906": "ST1.1", // Plastic pollution in food packaging - Miscellaneous
+  "2-s2.0-85195856448": "ST1.2", // Sustainability Integration in Engineering Curricula - Education
+  "2-s2.0-105030102662": "ST1.1", // Biomass Conversion to Biodiesel - Miscellaneous
+  "2-s2.0-105018700668": "ST1.1", // Nano- and microplastics on soil - Miscellaneous
+  "2-s2.0-85162730777": "ST1.2", // Engineering Students' Perceptions - Education
+  "2-s2.0-105014609660": "ST1.1", // PCBs and OCPs in Lebanese Yogurt - Miscellaneous
+  "2-s2.0-105000221394": "ST1.1", // Tiny pollutants and microplastics - Miscellaneous
+  "2-s2.0-105001973206": "ST1.2", // E-assessment and e-proctoring - Education
+  "2-s2.0-105020196929": "ST1.1", // Dry Ice Production Process - Miscellaneous
+  "2-s2.0-105019850394": "ST1.1", // Metabolic engineering of Yarrowia - Miscellaneous
+  "2-s2.0-105009943628": "ST1.2", // Women engineers and sustainability - Education
+  "2-s2.0-105015588598": "ST1.1", // Plastics pollution in marine environments - Miscellaneous
+  "2-s2.0-105017428870": "ST1.1", // Dry Ice Production Methods - Miscellaneous
+  "2-s2.0-85217633466": "ST1.2"  // Engineering Students' Potential for Sustainable Development - Education
 };
 export default paperThemes;

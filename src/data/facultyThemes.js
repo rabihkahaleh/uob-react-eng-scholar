@@ -90,6 +90,15 @@ export const tracks = [
       { id: "CV7.5", name: "Fog Formation and Prediction in Atmospheric Studies" },
     ],
   },
+  {
+    id: "ST1",
+    name: "Sustainability Track",
+    color: "#10b981",
+    themes: [
+      { id: "ST1.1", name: "Miscellaneous" },
+      { id: "ST1.2", name: "Engineering Education for Sustainable Development" },
+    ],
+  },
 ];
 
 // Flat lookup: themeId → { id, name, trackId, trackName, color }

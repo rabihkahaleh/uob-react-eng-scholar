@@ -88,11 +88,14 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
         articles.forEach(a => {
             if (uniqueIds.has(a.id)) return;
             uniqueIds.add(a.id);
-            const themeId = paperThemes[a.id];
-            if (themeId && themeMap[themeId]) {
-                const trackId = themeMap[themeId].trackId;
-                counts[trackId] = (counts[trackId] || 0) + 1;
-            }
+            const themeIds = paperThemes[a.id];
+            const themes = Array.isArray(themeIds) ? themeIds : [themeIds];
+            themes.forEach(themeId => {
+                if (themeId && themeMap[themeId]) {
+                    const trackId = themeMap[themeId].trackId;
+                    counts[trackId] = (counts[trackId] || 0) + 1;
+                }
+            });
         });
         return Object.entries(counts)
             .map(([id, count]) => {

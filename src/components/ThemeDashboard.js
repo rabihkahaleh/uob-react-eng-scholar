@@ -19,11 +19,14 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
     articles.forEach(a => {
       if (processedIds.has(a.id)) return;
       processedIds.add(a.id);
-      
-      const themeId = paperThemes[a.id];
-      if (!themeId) return;
-      if (!map[themeId]) map[themeId] = [];
-      map[themeId].push(a);
+
+      const themeIds = paperThemes[a.id];
+      if (!themeIds) return;
+      const themes = Array.isArray(themeIds) ? themeIds : [themeIds];
+      themes.forEach(themeId => {
+        if (!map[themeId]) map[themeId] = [];
+        map[themeId].push(a);
+      });
     });
     return map;
   }, [articles]);
