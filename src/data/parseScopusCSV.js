@@ -131,7 +131,7 @@ function parseThemeId(raw) {
 }
 
 export function processScopusCSV(csvString, deptId, deptName) {
-  const lines = csvString.split(/\r?\n/);
+  const lines = csvString.replace(/^﻿/, '').split(/\r?\n/);
   const headerCols = parseCSVLine(lines[0]);
   const COL = buildCOL(headerCols);
 

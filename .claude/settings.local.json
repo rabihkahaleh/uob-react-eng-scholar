@@ -11,7 +11,12 @@
       "Bash(grep -E \"\\\\.\\(csv|CSV\\)$\")",
       "Bash(node generate-all-themes.js)",
       "Bash(sed -n '1,10p' src/data/chemicalScopusData.js)",
-      "Bash(sed -n '3,6p' src/data/chemicalScopusData.js)"
+      "Bash(sed -n '3,6p' src/data/chemicalScopusData.js)",
+      "Bash(node \"d:/reactnative/uob-react-eng-scholar/src/data/regenerate-all.js\")",
+      "Bash(Get-Content \"d:\\\\reactnative\\\\uob-react-eng-scholar\\\\src\\\\data\\\\civilEnvScopusData.js\" -Tail 5)",
+      "Bash(Get-Content \"d:\\\\reactnative\\\\uob-react-eng-scholar\\\\src\\\\data\\\\civilScopusData.js\" -Tail 5)",
+      "PowerShell(Get-Content \"d:\\\\reactnative\\\\uob-react-eng-scholar\\\\src\\\\data\\\\civilEnvScopusData.js\" -Tail 5; Write-Host \"---\"; Get-Content \"d:\\\\reactnative\\\\uob-react-eng-scholar\\\\src\\\\data\\\\civilScopusData.js\" -Tail 5; Write-Host \"---\"; \\(Get-Content \"d:\\\\reactnative\\\\uob-react-eng-scholar\\\\src\\\\data\\\\civilEnvScopusData.js\"\\).Count; \\(Get-Content \"d:\\\\reactnative\\\\uob-react-eng-scholar\\\\src\\\\data\\\\civilScopusData.js\"\\).Count)",
+      "PowerShell($lines = Get-Content \"d:\\\\reactnative\\\\uob-react-eng-scholar\\\\src\\\\data\\\\civil.csv\"; $eids = $lines | Select-Object -Skip 1 | Where-Object { $_.Trim\\(\\) -ne \"\" } | ForEach-Object { \\($_ -split ','\\)[-1].Trim\\(\\) } | Where-Object { $_ -ne \"\" }; Write-Host \"Total data rows with EID: $\\($eids.Count\\)\"; Write-Host \"Unique EIDs: $\\(\\($eids | Sort-Object -Unique\\).Count\\)\"; Write-Host \"Duplicate EIDs: $\\(\\($eids | Group-Object | Where-Object { $_.Count -gt 1 } | Measure-Object\\).Count\\)\")"
     ]
   }
 }

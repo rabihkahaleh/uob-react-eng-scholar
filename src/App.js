@@ -5,7 +5,7 @@ import AuthorDashboard from "./components/AuthorDashboard";
 import ThemeDashboard from "./components/ThemeDashboard";
 import JournalsDashboard from "./components/JournalsDashboard";
 import ArticleDetails from "./components/ArticleDetails";
-import { GraduationCap, Home, Loader2, User, Search, PanelLeftClose, PanelLeftOpen, ArrowUp, ArrowDown, BookMarked, Newspaper } from "lucide-react";
+import { GraduationCap, Home, Loader2, User, Search, PanelLeftClose, PanelLeftOpen, ArrowUp, ArrowDown, BookMarked, Newspaper, ChevronDown, ChevronRight } from "lucide-react";
 
 function App() {
   const [departments, setDepartments] = useState([]);
@@ -24,6 +24,8 @@ function App() {
   const [showJournals, setShowJournals] = useState(false);
   const [initialThemeId, setInitialThemeId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [instructorsExpanded, setInstructorsExpanded] = useState(false);
+  const [departmentsExpanded, setDepartmentsExpanded] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -54,14 +56,19 @@ function App() {
   // Build sorted authors list from all articles
   const authorsList = useMemo(() => {
     const map = {};
+    // Track unique EIDs per author so shared papers don't inflate the count
+    const seenEids = {};
     allArticles.forEach(a => {
       const metaList = Array.isArray(a.metadata) ? a.metadata : [];
       const val = metaList.find(m => m.key === "dc.contributor.uobinstructors")?.value || "";
       const citations = parseInt(metaList.find(m => m.key === "dc.relation.citedby")?.value || "0", 10);
       val.split(";").map(s => s.trim()).filter(Boolean).forEach(name => {
-        if (!map[name]) map[name] = { name, count: 0, citations: 0, deptId: a.deptId, deptName: a.deptName };
-        map[name].count++;
-        map[name].citations += citations;
+        if (!map[name]) { map[name] = { name, count: 0, citations: 0, deptId: a.deptId, deptName: a.deptName }; seenEids[name] = new Set(); }
+        if (!seenEids[name].has(a.id)) {
+          seenEids[name].add(a.id);
+          map[name].count++;
+          map[name].citations += citations;
+        }
       });
     });
     const list = Object.values(map);
@@ -230,97 +237,118 @@ function App() {
 
             {sidebarOpen && (
               <>
-                {/* Instructors — now first */}
-                <div style={{ margin: "1.25rem 0 0.5rem 0", color: "rgba(255,255,255,0.4)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
-                  Instructors
+                {/* ── Instructors section ── */}
+                <div
+                  onClick={() => setInstructorsExpanded(v => !v)}
+                  style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
+                >
+                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
+                    Instructors
+                  </span>
+                  {instructorsExpanded
+                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.4)" }} />
+                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.4)" }} />}
                 </div>
 
-                {/* Sort controls */}
-                <div style={{ display: "flex", gap: "0.35rem", marginBottom: "0.5rem" }}>
-                  {[{ key: "publications", label: "Pubs" }, { key: "citations", label: "Cites" }].map(({ key, label }) => {
-                    const isActive = instructorSort === key;
-                    return (
-                      <div key={key} style={{ flex: 1, display: "flex", borderRadius: "6px", overflow: "hidden", border: isActive ? "1px solid rgba(59,130,246,0.5)" : "1px solid rgba(255,255,255,0.1)" }}>
-                        <button
-                          onClick={() => { setInstructorSort(key); setInstructorSortDir("desc"); }}
-                          style={{
-                            flex: 1, padding: "0.3rem 0.3rem",
-                            fontSize: "0.68rem", fontWeight: "700",
-                            cursor: "pointer", border: "none",
-                            background: isActive ? "rgba(59,130,246,0.2)" : "transparent",
-                            color: isActive ? "#93c5fd" : "#64748b",
-                          }}
+                {instructorsExpanded && (
+                  <>
+                    {/* Sort controls */}
+                    <div style={{ display: "flex", gap: "0.35rem", marginBottom: "0.5rem" }}>
+                      {[{ key: "publications", label: "Pubs" }, { key: "citations", label: "Cites" }].map(({ key, label }) => {
+                        const isActive = instructorSort === key;
+                        return (
+                          <div key={key} style={{ flex: 1, display: "flex", borderRadius: "6px", overflow: "hidden", border: isActive ? "1px solid rgba(59,130,246,0.5)" : "1px solid rgba(255,255,255,0.1)" }}>
+                            <button
+                              onClick={e => { e.stopPropagation(); setInstructorSort(key); setInstructorSortDir("desc"); }}
+                              style={{
+                                flex: 1, padding: "0.3rem 0.3rem",
+                                fontSize: "0.68rem", fontWeight: "700",
+                                cursor: "pointer", border: "none",
+                                background: isActive ? "rgba(59,130,246,0.2)" : "transparent",
+                                color: isActive ? "#93c5fd" : "#64748b",
+                              }}
+                            >
+                              {label}
+                            </button>
+                            <button
+                              onClick={e => { e.stopPropagation(); setInstructorSort(key); setInstructorSortDir(d => isActive ? (d === "desc" ? "asc" : "desc") : "desc"); }}
+                              style={{
+                                padding: "0.3rem 0.4rem", border: "none",
+                                borderLeft: "1px solid rgba(255,255,255,0.08)",
+                                background: isActive ? "rgba(59,130,246,0.2)" : "transparent",
+                                color: isActive ? "#93c5fd" : "#475569",
+                                cursor: "pointer", display: "flex", alignItems: "center"
+                              }}
+                            >
+                              {isActive && instructorSortDir === "asc"
+                                ? <ArrowUp size={11} />
+                                : <ArrowDown size={11} />}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Instructor search */}
+                    <div style={{ position: "relative", marginBottom: "0.5rem" }}>
+                      <Search size={13} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "#475569" }} />
+                      <input
+                        type="text"
+                        placeholder="Search instructors..."
+                        value={instructorSearch}
+                        onChange={e => setInstructorSearch(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "0.45rem 0.75rem 0.45rem 2rem",
+                          background: "rgba(255,255,255,0.05)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          borderRadius: "8px",
+                          color: "#e2e8f0",
+                          fontSize: "0.78rem",
+                          outline: "none",
+                          fontFamily: "inherit",
+                        }}
+                      />
+                    </div>
+
+                    {authorsList
+                      .filter(a => !instructorSearch || a.name.toLowerCase().includes(instructorSearch.toLowerCase()))
+                      .map((author) => (
+                        <li
+                          key={author.name}
+                          className={`nav-item ${selectedAuthor?.name === author.name ? "active" : ""}`}
+                          onClick={() => handleSelectAuthor(author)}
+                          style={{ justifyContent: "space-between" }}
                         >
-                          {label}
-                        </button>
-                        <button
-                          onClick={() => { setInstructorSort(key); setInstructorSortDir(d => isActive ? (d === "desc" ? "asc" : "desc") : "desc"); }}
-                          style={{
-                            padding: "0.3rem 0.4rem", border: "none",
-                            borderLeft: "1px solid rgba(255,255,255,0.08)",
-                            background: isActive ? "rgba(59,130,246,0.2)" : "transparent",
-                            color: isActive ? "#93c5fd" : "#475569",
-                            cursor: "pointer", display: "flex", alignItems: "center"
-                          }}
-                        >
-                          {isActive && instructorSortDir === "asc"
-                            ? <ArrowUp size={11} />
-                            : <ArrowDown size={11} />}
-                        </button>
-                      </div>
-                    );
-                  })}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                            <User size={16} /> {author.name}
+                          </div>
+                          <span style={{
+                            fontSize: "0.7rem",
+                            background: selectedAuthor?.name === author.name ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
+                            padding: "0.1rem 0.4rem", borderRadius: "10px", fontWeight: "700"
+                          }}>
+                            {instructorSort === "citations" ? author.citations : author.count}
+                          </span>
+                        </li>
+                      ))}
+                  </>
+                )}
+
+                {/* ── Departments section ── */}
+                <div
+                  onClick={() => setDepartmentsExpanded(v => !v)}
+                  style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
+                >
+                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
+                    Departments
+                  </span>
+                  {departmentsExpanded
+                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.4)" }} />
+                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.4)" }} />}
                 </div>
 
-                {/* Instructor search */}
-                <div style={{ position: "relative", marginBottom: "0.5rem" }}>
-                  <Search size={13} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "#475569" }} />
-                  <input
-                    type="text"
-                    placeholder="Search instructors..."
-                    value={instructorSearch}
-                    onChange={e => setInstructorSearch(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "0.45rem 0.75rem 0.45rem 2rem",
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "8px",
-                      color: "#e2e8f0",
-                      fontSize: "0.78rem",
-                      outline: "none",
-                      fontFamily: "inherit",
-                    }}
-                  />
-                </div>
-
-                {authorsList
-                  .filter(a => !instructorSearch || a.name.toLowerCase().includes(instructorSearch.toLowerCase()))
-                  .map((author) => (
-                    <li
-                      key={author.name}
-                      className={`nav-item ${selectedAuthor?.name === author.name ? "active" : ""}`}
-                      onClick={() => handleSelectAuthor(author)}
-                      style={{ justifyContent: "space-between" }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                        <User size={16} /> {author.name}
-                      </div>
-                      <span style={{
-                        fontSize: "0.7rem",
-                        background: selectedAuthor?.name === author.name ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
-                        padding: "0.1rem 0.4rem", borderRadius: "10px", fontWeight: "700"
-                      }}>
-                        {instructorSort === "citations" ? author.citations : author.count}
-                      </span>
-                    </li>
-                  ))}
-
-                {/* Departments — now below */}
-                <div style={{ margin: "1.25rem 0 0.5rem 0", color: "rgba(255,255,255,0.4)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
-                  Departments
-                </div>
-                {departments.map((dept) => (
+                {departmentsExpanded && departments.map((dept) => (
                   <li
                     key={dept.id}
                     className={`nav-item ${selectedDept?.id === dept.id ? "active" : ""}`}

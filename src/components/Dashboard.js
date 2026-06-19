@@ -9,10 +9,30 @@ import { themeMap, tracks } from "../data/facultyThemes";
 export default function Dashboard({ departments, articles, selectedDept, onSelectAuthor, onSelectDept, onSelectTheme }) {
     const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#f43f5e', '#06b6d4'];
 
+    const DEPT_TAGS = {
+        CV: { label: "Civil & Environmental Engineering", bg: "#dbeafe", color: "#1d4ed8" },
+        EE: { label: "Electrical Engineering",            bg: "#fef3c7", color: "#92400e" },
+        ME: { label: "Mechanical Engineering",            bg: "#fee2e2", color: "#991b1b" },
+        CH: { label: "Chemical Engineering",              bg: "#d1fae5", color: "#065f46" },
+        CP: { label: "Computer Engineering",              bg: "#ede9fe", color: "#5b21b6" },
+        ST: { label: "Sustainability for Engineering",    bg: "#ccfbf1", color: "#0f766e" },
+    };
+
+    // Deduplicate by EID for all statistical charts (annual, type, authorship, instructors).
+    // trackStats intentionally uses all records to match ThemeDashboard per-instructor counts.
+    const uniqueArticles = useMemo(() => {
+        const seen = new Set();
+        return articles.filter(a => {
+            if (seen.has(a.id)) return false;
+            seen.add(a.id);
+            return true;
+        });
+    }, [articles]);
+
     // Annual output — real years
     const annualData = useMemo(() => {
         const counts = {};
-        articles.forEach(a => {
+        uniqueArticles.forEach(a => {
             const year = a.lastModified ? new Date(a.lastModified).getFullYear() : null;
             if (year && year >= 2000 && year <= new Date().getFullYear())
                 counts[year] = (counts[year] || 0) + 1;
@@ -20,26 +40,26 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
         return Object.entries(counts)
             .map(([year, value]) => ({ name: String(year), value }))
             .sort((a, b) => a.name.localeCompare(b.name));
-    }, [articles]);
+    }, [uniqueArticles]);
 
     // Document type distribution
     const docTypeData = useMemo(() => {
-        if (!articles.length) return [];
+        if (!uniqueArticles.length) return [];
         const counts = {};
-        articles.forEach(a => {
+        uniqueArticles.forEach(a => {
             const type = a.type || 'Article';
             counts[type] = (counts[type] || 0) + 1;
         });
         return Object.entries(counts)
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value);
-    }, [articles]);
+    }, [uniqueArticles]);
 
     // Authorship distribution
     const authorshipData = useMemo(() => {
-        if (!articles.length) return [];
+        if (!uniqueArticles.length) return [];
         const distribution = {};
-        articles.forEach(a => {
+        uniqueArticles.forEach(a => {
             const metadataList = Array.isArray(a.metadata) ? a.metadata : (a.metadata ? [a.metadata] : []);
             const authorVal = metadataList.find(m => m.key === "dc.contributor.author")?.value || "";
             const authorCount = authorVal ? authorVal.split(';').filter(s => s.trim()).length : 0;
@@ -50,13 +70,13 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
             name: `${key} ${key === '1' ? 'Author' : 'Authors'}`,
             count: distribution[key]
         }));
-    }, [articles]);
+    }, [uniqueArticles]);
 
-    // Top UOB instructors — scoped to currently displayed articles (dept or faculty-wide)
+    // Top UOB instructors — unique papers per instructor (deduplicated by EID)
     const instructorStats = useMemo(() => {
-        if (!articles.length) return [];
+        if (!uniqueArticles.length) return [];
         const counts = {};
-        articles.forEach(a => {
+        uniqueArticles.forEach(a => {
             const metaList = Array.isArray(a.metadata) ? a.metadata : (a.metadata ? [a.metadata] : []);
             const instructorsVal = metaList.find(m => m.key === 'dc.contributor.uobinstructors')?.value;
             if (instructorsVal) {
@@ -69,7 +89,7 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
             .map(([name, count]) => ({ name, count }))
             .sort((a, b) => b.count - a.count)
             .slice(0, 10);
-    }, [articles]);
+    }, [uniqueArticles]);
 
     // Faculty overview bar chart (only shown when no dept selected)
     const deptData = useMemo(() => {
@@ -210,21 +230,36 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
                     <div className="chart-container" style={{ gridColumn: "span 1", marginBottom: 0 }}>
                         <h3 className="chart-title">Research Tracks Breakdown</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginTop: "1rem" }}>
-                            {trackStats.map(t => (
-                                <div key={t.id} onClick={() => onSelectTheme && onSelectTheme(t.id)} style={{
-                                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                                    background: `${t.color}12`, borderLeft: `6px solid ${t.color}`,
-                                    padding: "1rem 1.25rem", borderRadius: "8px", cursor: "pointer",
-                                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                                }}>
-                                    <div style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.95rem" }}>
-                                        {t.name}
+                            {trackStats.map(t => {
+                                const prefix = t.id.match(/^([A-Z]+)/)?.[1] || '';
+                                const dept = DEPT_TAGS[prefix];
+                                return (
+                                    <div key={t.id} onClick={() => onSelectTheme && onSelectTheme(t.id)} style={{
+                                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                                        background: `${t.color}12`, borderLeft: `6px solid ${t.color}`,
+                                        padding: "0.75rem 1.25rem", borderRadius: "8px", cursor: "pointer",
+                                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)", gap: "0.75rem"
+                                    }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, minWidth: 0 }}>
+                                            {dept && (
+                                                <span title={dept.label} style={{
+                                                    fontSize: "0.6rem", fontWeight: "800", letterSpacing: "0.06em",
+                                                    background: dept.bg, color: dept.color,
+                                                    padding: "0.15rem 0.4rem", borderRadius: "4px", flexShrink: 0,
+                                                }}>
+                                                    {prefix}
+                                                </span>
+                                            )}
+                                            <span style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.9rem" }}>
+                                                {t.name}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontWeight: "900", color: t.color, fontSize: "1.05rem", background: "#fff", padding: "0.2rem 0.6rem", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", flexShrink: 0 }}>
+                                            {t.count}
+                                        </div>
                                     </div>
-                                    <div style={{ fontWeight: "900", color: t.color, fontSize: "1.1rem", background: "#fff", padding: "0.2rem 0.6rem", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                                        {t.count}
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
