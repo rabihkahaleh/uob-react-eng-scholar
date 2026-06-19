@@ -76,6 +76,67 @@ export const tracks = [
     ],
   },
   {
+    id: "CH0",
+    name: "Miscellaneous",
+    color: "#64748b",
+    themes: [
+      { id: "CH0.1", name: "Miscellaneous" },
+    ],
+  },
+  {
+    id: "CH1",
+    name: "Environmental Pollution and Treatment",
+    color: "#0d9488",
+    themes: [
+      { id: "CH1.1", name: "Environmental Impact, Life Cycle Assessment, and Sustainability" },
+      { id: "CH1.2", name: "Plastic Pollution and Microplastics Management" },
+      { id: "CH1.3", name: "Environmental Systems, Water Treatment & Pollution Control" },
+    ],
+  },
+  {
+    id: "CH2",
+    name: "Catalysis and Reaction Engineering",
+    color: "#f97316",
+    themes: [
+      { id: "CH2.1", name: "Advanced Catalysis & Reaction Engineering for Energy and Decarbonization" },
+      { id: "CH2.2", name: "Bioenergy, Biomass Conversion & Carbon Valorization" },
+    ],
+  },
+  {
+    id: "CH3",
+    name: "Advanced Materials and Functional Nanomaterials",
+    color: "#8b5cf6",
+    themes: [
+      { id: "CH3.1", name: "Metal Complexes & Catalytic Systems" },
+      { id: "CH3.2", name: "Photocatalytic and Functional Nanomaterials" },
+    ],
+  },
+  {
+    id: "CH4",
+    name: "Food Safety and Processing Engineering",
+    color: "#ec4899",
+    themes: [
+      { id: "CH4.1", name: "Food Safety & Contaminant Mitigation Technologies" },
+      { id: "CH4.2", name: "Food Processing and Physical Properties" },
+    ],
+  },
+  {
+    id: "CH5",
+    name: "Biochemical and Bioprocess Systems",
+    color: "#0ea5e9",
+    themes: [
+      { id: "CH5.1", name: "Microbial Systems & Biotechnological Applications" },
+    ],
+  },
+  {
+    id: "CH6",
+    name: "Sustainable Materials and Infrastructure",
+    color: "#22c55e",
+    themes: [
+      { id: "CH6.1", name: "Green Roofs, Sustainable Buildings, and Infrastructure Materials" },
+    ],
+  },
+  {
     id: "ST1",
     name: "Sustainability Track",
     color: "#10b981",

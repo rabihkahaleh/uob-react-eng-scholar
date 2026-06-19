@@ -132,7 +132,7 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
             </div>
 
             {/* Top charts row */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: selectedDept ? "1fr 1fr" : "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
 
                 {/* Chart 1: Annual output */}
                 <div className="chart-container">
@@ -154,8 +154,8 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
                     </div>
                 </div>
 
-                {/* Chart 2: dept bar or authorship */}
-                {!selectedDept ? (
+                {/* Chart 2: Publications by Department (faculty view only) */}
+                {!selectedDept && (
                     <div className="chart-container">
                         <h3 className="chart-title">Publications by Department</h3>
                         <div style={{ height: "280px" }}>
@@ -173,23 +173,6 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                         <LabelList dataKey="value" position="top" style={{ fill: '#475569', fontWeight: 'bold', fontSize: '10px' }} />
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="chart-container">
-                        <h3 className="chart-title">Authors Per Paper</h3>
-                        <div style={{ height: "280px" }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={authorshipData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                                    <YAxis tick={{ fontSize: 10 }} />
-                                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
-                                    <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="count" position="top" style={{ fill: '#065f46', fontWeight: 'bold', fontSize: '10px' }} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
