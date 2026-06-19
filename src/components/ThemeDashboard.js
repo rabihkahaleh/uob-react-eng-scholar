@@ -15,12 +15,8 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
   // Build themeId → articles mapping
   const themeArticles = useMemo(() => {
     const map = {};
-    const processedIds = new Set();
     articles.forEach(a => {
-      if (processedIds.has(a.id)) return;
-      processedIds.add(a.id);
-
-      const themeIds = paperThemes[a.id];
+      const themeIds = a.themeId || paperThemes[a.id];
       if (!themeIds) return;
       const themes = Array.isArray(themeIds) ? themeIds : [themeIds];
       themes.forEach(themeId => {
@@ -117,6 +113,15 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
 
   const hasData = totalClassified > 0;
 
+  const DEPT_TAGS = {
+    CV: { label: "Civil & Environmental Engineering", bg: "#dbeafe", color: "#1d4ed8" },
+    EE: { label: "Electrical Engineering",            bg: "#fef3c7", color: "#92400e" },
+    ME: { label: "Mechanical Engineering",            bg: "#fee2e2", color: "#991b1b" },
+    CH: { label: "Chemical Engineering",              bg: "#d1fae5", color: "#065f46" },
+    CP: { label: "Computer Engineering",              bg: "#ede9fe", color: "#5b21b6" },
+    ST: { label: "Sustainability for Engineering",    bg: "#ccfbf1", color: "#0f766e" },
+  };
+
   return (
     <div className="fade-in">
       {/* Header */}
@@ -163,6 +168,8 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
             {tracks.map(track => {
               const isExpanded = expandedTrack === track.id;
               const count = trackCounts[track.id];
+              const deptPrefix = track.id.match(/^([A-Z]+)/)?.[1] || '';
+              const dept = DEPT_TAGS[deptPrefix];
               return (
                 <div key={track.id} style={{ background: "#fff", border: "1px solid var(--border)",
                   borderRadius: "12px", overflow: "hidden", boxShadow: "var(--shadow)" }}>
@@ -176,13 +183,25 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
                       background: isExpanded ? `${track.color}10` : "transparent",
                       transition: "background 0.2s" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
                       {isExpanded
-                        ? <ChevronDown size={15} style={{ color: track.color }} />
-                        : <ChevronRight size={15} style={{ color: "var(--text-muted)" }} />}
+                        ? <ChevronDown size={15} style={{ color: track.color, flexShrink: 0 }} />
+                        : <ChevronRight size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
                       <span style={{ fontWeight: "700", fontSize: "0.85rem", color: "var(--text-main)" }}>
                         {track.name}
                       </span>
+                      {dept && (
+                        <span
+                          title={dept.label}
+                          style={{
+                            fontSize: "0.6rem", fontWeight: "800", letterSpacing: "0.06em",
+                            background: dept.bg, color: dept.color,
+                            padding: "0.1rem 0.35rem", borderRadius: "4px", flexShrink: 0,
+                          }}
+                        >
+                          {deptPrefix}
+                        </span>
+                      )}
                     </div>
                     <span style={{ fontSize: "0.72rem", fontWeight: "800",
                       background: isExpanded ? track.color : "var(--bg)",

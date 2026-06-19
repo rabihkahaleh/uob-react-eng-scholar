@@ -60,6 +60,18 @@ const ALL_THEMES = [
   { id: "CV7.3",  name: "Environmental Risks of Organochlorine Pesticides and PCBs" },
   { id: "CV7.4",  name: "Organic Carbon Emissions from Biomass Burning Aerosols" },
   { id: "CV7.5",  name: "Fog Formation and Prediction in Atmospheric Studies" },
+  { id: "ME1.1",  name: "Wind, Solar PV, and Wave Energy Conversion" },
+  { id: "ME1.2",  name: "Hybrid Energy Systems, Energy Planning, and Resource Nexus" },
+  { id: "ME1.3",  name: "Sustainable Fuels, Bioenergy, and Energy storage systems" },
+  { id: "ME2.1",  name: "Electrohydrodynamic Flows & Electrically-Induced Phenomena" },
+  { id: "ME2.2",  name: "Multiphase Flow Modeling, Aerosol Dynamics, and Particle Transport" },
+  { id: "ME2.3",  name: "Phase Change Materials (PCM) & Building Energy Systems" },
+  { id: "ME2.4",  name: "Sustainable Solar Thermal Processes for Cooling and Drying" },
+  { id: "ME3.1",  name: "Composite Materials & Fracture Mechanics" },
+  { id: "ME3.2",  name: "Thermo-mechanical Processes, functionally Graded Materials (FGM) and Tailoring Techniques" },
+  { id: "ME3.3",  name: "Mechanical System Design, Structural Analysis & Applied Mechanics" },
+  { id: "ME4.1",  name: "Vibro-Acoustics, Damping Behavior, and Noise Control" },
+  { id: "ME4.2",  name: "Smart Mechanical Design, Mechatronics, and Emerging Applications" },
 ];
 
 const THEME_LIST_TEXT = ALL_THEMES.map(t => `${t.id}: ${t.name}`).join("\n");
@@ -126,7 +138,7 @@ ${THEME_LIST_TEXT}`;
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim().replace(/['"]/g, "");
     // Extract first token that looks like a theme ID
-    const match = text.match(/CV\d+\.\d+/);
+    const match = text.match(/(CV|ME|ST)\d+\.\d+/);
     const id = match ? match[0] : null;
     return id && VALID_IDS.has(id) ? id : null;
   } catch (err) {

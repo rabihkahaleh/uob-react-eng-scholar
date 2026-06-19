@@ -82,7 +82,7 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
   const themePapersMap = useMemo(() => {
     const map = {};
     authorPapers.forEach(a => {
-      const themeIds = paperThemes[a.id];
+      const themeIds = a.themeId || paperThemes[a.id];
       if (!themeIds) return;
       const themes = Array.isArray(themeIds) ? themeIds : [themeIds];
       themes.forEach(themeId => {
@@ -373,7 +373,7 @@ export default function AuthorDashboard({ authorName, articles, onSelectArticle 
                     const metaList = Array.isArray(a.metadata) ? a.metadata : [];
                     const getMeta = (key) => metaList.find(m => m.key === key)?.value || "";
                     const year = a.lastModified ? new Date(a.lastModified).getFullYear() : "";
-                    const themeId = paperThemes[a.id] || "Uncategorized";
+                    const themeId = a.themeId || paperThemes[a.id] || "Uncategorized";
                     const themeName = themeMap[themeId]?.name || "N/A";
                     return [
                       `"${themeId}"`,

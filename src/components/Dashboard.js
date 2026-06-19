@@ -84,11 +84,8 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
     const trackStats = useMemo(() => {
         if (!articles.length) return [];
         const counts = {};
-        const uniqueIds = new Set();
         articles.forEach(a => {
-            if (uniqueIds.has(a.id)) return;
-            uniqueIds.add(a.id);
-            const themeIds = paperThemes[a.id];
+            const themeIds = a.themeId || paperThemes[a.id];
             const themes = Array.isArray(themeIds) ? themeIds : [themeIds];
             themes.forEach(themeId => {
                 if (themeId && themeMap[themeId]) {

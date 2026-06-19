@@ -31,6 +31,8 @@ function paperToArticle(p) {
     lastModified: p.year ? `${p.year}-01-01` : null,
     deptId: p.deptId,
     deptName: p.deptName,
+    themeId: p.themeId || null,
+    themeName: p.themeName || null,
     metadata: [
       { key: 'dc.contributor.author',         value: p.authors || '' },
       { key: 'dc.contributor.authorfull',     value: p.authorFull || '' },
@@ -45,6 +47,8 @@ function paperToArticle(p) {
       { key: 'dc.identifier.scopus',          value: p.link || '' },
       { key: 'dc.rights.openaccess',          value: p.openAccess || '' },
       { key: 'dc.contributor.uobinstructors', value: p.uobInstructors.join('; ') },
+      { key: 'dc.subject.theme',              value: p.themeId || '' },
+      { key: 'dc.subject.themename',          value: p.themeName || '' },
     ],
   };
 }
@@ -60,8 +64,8 @@ export async function getArticles(_departmentId) {
   return allPapers.map(paperToArticle);
 }
 
-export async function getArticleMetadata(eid) {
-  const paper = allPapers.find(p => p.eid === eid);
+export async function getArticleMetadata(id) {
+  const paper = allPapers.find(p => p.id === id || p.eid === id);
   if (!paper) return [];
 
   return [
@@ -80,5 +84,7 @@ export async function getArticleMetadata(eid) {
     { key: 'dc.identifier.scopus',          value: paper.link || '' },
     { key: 'dc.rights.openaccess',          value: paper.openAccess || '' },
     { key: 'dc.contributor.uobinstructors', value: paper.uobInstructors.join('; ') },
+    { key: 'dc.subject.theme',              value: paper.themeId || '' },
+    { key: 'dc.subject.themename',          value: paper.themeName || '' },
   ];
 }

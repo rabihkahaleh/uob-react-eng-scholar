@@ -403,7 +403,6 @@ const paperThemes = {
   "2-s2.0-105030102662": "ST1.1", // Biomass Conversion to Biodiesel - Miscellaneous
   "2-s2.0-105018700668": "ST1.1", // Nano- and microplastics on soil - Miscellaneous
   "2-s2.0-85162730777": "ST1.2", // Engineering Students' Perceptions - Education
-  "2-s2.0-105014609660": "ST1.1", // PCBs and OCPs in Lebanese Yogurt - Miscellaneous
   "2-s2.0-105000221394": "ST1.1", // Tiny pollutants and microplastics - Miscellaneous
   "2-s2.0-105001973206": "ST1.2", // E-assessment and e-proctoring - Education
   "2-s2.0-105020196929": "ST1.1", // Dry Ice Production Process - Miscellaneous
