@@ -203,7 +203,7 @@ function App() {
           )}
         </div>
 
-        <nav style={{ overflowY: "auto", flex: 1, marginRight: sidebarOpen ? "-1rem" : "0", paddingRight: sidebarOpen ? "1rem" : "0" }}>
+        <nav style={{ overflowY: "auto", flex: 1 }}>
           <ul className="nav-list">
             <li
               className={`nav-item ${!selectedDept && !selectedAuthor && !showThemes ? "active" : ""}`}
