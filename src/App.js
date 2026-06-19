@@ -188,23 +188,20 @@ function App() {
             src="/FOE_logo.jpg"
             alt="UOB"
             style={{
-              width: sidebarOpen ? "120px" : "44px",
-              height: sidebarOpen ? "120px" : "44px",
+              width: sidebarOpen ? "200px" : "44px",
+              height: "auto",
               objectFit: "contain",
               margin: sidebarOpen ? "0 auto 1rem" : "0 auto 0.5rem",
               display: "block",
-              borderRadius: "50%",
+              borderRadius: "10px",
               background: "white",
-              padding: "4px",
+              padding: sidebarOpen ? "8px" : "4px",
               boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
             }}
           />
           {sidebarOpen && (
             <>
               <div style={{ fontWeight: "800", fontSize: "1.1rem" }}>RESEARCH PORTAL</div>
-              <div style={{ fontSize: "0.6rem", color: "var(--secondary)", marginTop: "0.2rem", letterSpacing: "1px", fontWeight: "700" }}>
-                FACULTY OF ENGINEERING
-              </div>
             </>
           )}
         </div>
@@ -243,12 +240,45 @@ function App() {
 
             {sidebarOpen && (
               <>
+                {/* ── Departments section ── */}
+                <div
+                  onClick={() => setDepartmentsExpanded(v => !v)}
+                  style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
+                >
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.85rem", fontWeight: "800", textTransform: "uppercase" }}>
+                    Departments
+                  </span>
+                  {departmentsExpanded
+                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.85)" }} />
+                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.85)" }} />}
+                </div>
+
+                {departmentsExpanded && departments.map((dept) => (
+                  <li
+                    key={dept.id}
+                    className={`nav-item ${selectedDept?.id === dept.id ? "active" : ""}`}
+                    onClick={() => handleSelectDepartment(dept)}
+                    style={{ justifyContent: "space-between" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <GraduationCap size={18} /> {dept.name.replace("Department of ", "")}
+                    </div>
+                    <span style={{
+                      fontSize: "0.7rem",
+                      background: selectedDept?.id === dept.id ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
+                      padding: "0.1rem 0.4rem", borderRadius: "10px", fontWeight: "700"
+                    }}>
+                      {dept.numberItems}
+                    </span>
+                  </li>
+                ))}
+
                 {/* ── Instructors section ── */}
                 <div
                   onClick={() => setInstructorsExpanded(v => !v)}
                   style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
                 >
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.85rem", fontWeight: "800", textTransform: "uppercase" }}>
                     Instructors
                   </span>
                   {instructorsExpanded
@@ -340,39 +370,6 @@ function App() {
                       ))}
                   </>
                 )}
-
-                {/* ── Departments section ── */}
-                <div
-                  onClick={() => setDepartmentsExpanded(v => !v)}
-                  style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
-                >
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
-                    Departments
-                  </span>
-                  {departmentsExpanded
-                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.85)" }} />
-                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.85)" }} />}
-                </div>
-
-                {departmentsExpanded && departments.map((dept) => (
-                  <li
-                    key={dept.id}
-                    className={`nav-item ${selectedDept?.id === dept.id ? "active" : ""}`}
-                    onClick={() => handleSelectDepartment(dept)}
-                    style={{ justifyContent: "space-between" }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                      <GraduationCap size={18} /> {dept.name.replace("Department of ", "")}
-                    </div>
-                    <span style={{
-                      fontSize: "0.7rem",
-                      background: selectedDept?.id === dept.id ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
-                      padding: "0.1rem 0.4rem", borderRadius: "10px", fontWeight: "700"
-                    }}>
-                      {dept.numberItems}
-                    </span>
-                  </li>
-                ))}
               </>
             )}
 
