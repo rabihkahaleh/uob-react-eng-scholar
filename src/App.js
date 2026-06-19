@@ -242,12 +242,12 @@ function App() {
                   onClick={() => setInstructorsExpanded(v => !v)}
                   style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
                 >
-                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
                     Instructors
                   </span>
                   {instructorsExpanded
-                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.4)" }} />
-                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.4)" }} />}
+                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.85)" }} />
+                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.85)" }} />}
                 </div>
 
                 {instructorsExpanded && (
@@ -265,7 +265,7 @@ function App() {
                                 fontSize: "0.68rem", fontWeight: "700",
                                 cursor: "pointer", border: "none",
                                 background: isActive ? "rgba(59,130,246,0.2)" : "transparent",
-                                color: isActive ? "#93c5fd" : "#64748b",
+                                color: isActive ? "#93c5fd" : "rgba(255,255,255,0.7)",
                               }}
                             >
                               {label}
@@ -276,7 +276,7 @@ function App() {
                                 padding: "0.3rem 0.4rem", border: "none",
                                 borderLeft: "1px solid rgba(255,255,255,0.08)",
                                 background: isActive ? "rgba(59,130,246,0.2)" : "transparent",
-                                color: isActive ? "#93c5fd" : "#475569",
+                                color: isActive ? "#93c5fd" : "rgba(255,255,255,0.6)",
                                 cursor: "pointer", display: "flex", alignItems: "center"
                               }}
                             >
@@ -291,7 +291,7 @@ function App() {
 
                     {/* Instructor search */}
                     <div style={{ position: "relative", marginBottom: "0.5rem" }}>
-                      <Search size={13} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "#475569" }} />
+                      <Search size={13} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.5)" }} />
                       <input
                         type="text"
                         placeholder="Search instructors..."
@@ -340,12 +340,12 @@ function App() {
                   onClick={() => setDepartmentsExpanded(v => !v)}
                   style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
                 >
-                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.65rem", fontWeight: "800", textTransform: "uppercase" }}>
                     Departments
                   </span>
                   {departmentsExpanded
-                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.4)" }} />
-                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.4)" }} />}
+                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.85)" }} />
+                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.85)" }} />}
                 </div>
 
                 {departmentsExpanded && departments.map((dept) => (

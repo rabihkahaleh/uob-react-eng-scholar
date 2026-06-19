@@ -226,43 +226,60 @@ export default function Dashboard({ departments, articles, selectedDept, onSelec
             {/* Bottom charts row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1.5rem" }}>
                 {/* Chart 4: All Research Tracks */}
-                {trackStats.length > 0 && (
-                    <div className="chart-container" style={{ gridColumn: "span 1", marginBottom: 0 }}>
-                        <h3 className="chart-title">Research Tracks Breakdown</h3>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginTop: "1rem" }}>
-                            {trackStats.map(t => {
-                                const prefix = t.id.match(/^([A-Z]+)/)?.[1] || '';
-                                const dept = DEPT_TAGS[prefix];
-                                return (
-                                    <div key={t.id} onClick={() => onSelectTheme && onSelectTheme(t.id)} style={{
-                                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                                        background: `${t.color}12`, borderLeft: `6px solid ${t.color}`,
-                                        padding: "0.75rem 1.25rem", borderRadius: "8px", cursor: "pointer",
-                                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)", gap: "0.75rem"
-                                    }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, minWidth: 0 }}>
-                                            {dept && (
-                                                <span title={dept.label} style={{
-                                                    fontSize: "0.6rem", fontWeight: "800", letterSpacing: "0.06em",
-                                                    background: dept.bg, color: dept.color,
-                                                    padding: "0.15rem 0.4rem", borderRadius: "4px", flexShrink: 0,
-                                                }}>
-                                                    {prefix}
+                {trackStats.length > 0 && (() => {
+                    const groups = [];
+                    const groupMap = {};
+                    trackStats.forEach(t => {
+                        const prefix = t.id.match(/^([A-Z]+)/)?.[1] || '';
+                        if (!groupMap[prefix]) { groupMap[prefix] = []; groups.push(prefix); }
+                        groupMap[prefix].push(t);
+                    });
+                    return (
+                        <div className="chart-container" style={{ gridColumn: "span 1", marginBottom: 0 }}>
+                            <h3 className="chart-title">Research Tracks Breakdown</h3>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginTop: "1rem" }}>
+                                {groups.map(prefix => {
+                                    const dept = DEPT_TAGS[prefix];
+                                    const deptTracks = groupMap[prefix];
+                                    const total = deptTracks.reduce((s, t) => s + t.count, 0);
+                                    return (
+                                        <div key={prefix}>
+                                            {/* Department header */}
+                                            <div style={{
+                                                display: "flex", alignItems: "center", justifyContent: "space-between",
+                                                borderBottom: "1px solid #e2e8f0", paddingBottom: "0.35rem", marginBottom: "0.4rem"
+                                            }}>
+                                                <span style={{ fontWeight: "700", color: "#64748b", fontSize: "0.73rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                                                    {dept?.label || prefix}
                                                 </span>
-                                            )}
-                                            <span style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.9rem" }}>
-                                                {t.name}
-                                            </span>
+                                                <span style={{ fontWeight: "700", color: "#94a3b8", fontSize: "0.73rem" }}>
+                                                    {total}
+                                                </span>
+                                            </div>
+                                            {/* Tracks */}
+                                            <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", paddingLeft: "0.5rem" }}>
+                                                {deptTracks.map(t => (
+                                                    <div key={t.id} onClick={() => onSelectTheme && onSelectTheme(t.id)} style={{
+                                                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                                                        background: `${t.color}10`, borderLeft: `4px solid ${t.color}`,
+                                                        padding: "0.5rem 1rem", borderRadius: "6px", cursor: "pointer", gap: "0.75rem"
+                                                    }}>
+                                                        <span style={{ fontWeight: "700", color: "#1e293b", fontSize: "0.85rem" }}>
+                                                            {t.name}
+                                                        </span>
+                                                        <span style={{ fontWeight: "900", color: t.color, fontSize: "0.95rem", background: "#fff", padding: "0.15rem 0.5rem", borderRadius: "10px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", flexShrink: 0 }}>
+                                                            {t.count}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div style={{ fontWeight: "900", color: t.color, fontSize: "1.05rem", background: "#fff", padding: "0.2rem 0.6rem", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", flexShrink: 0 }}>
-                                            {t.count}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
 
                 {/* Top instructors — always scoped to current articles (dept or all) */}
                 {instructorStats.length > 0 && (

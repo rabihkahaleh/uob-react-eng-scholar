@@ -163,91 +163,111 @@ export default function ThemeDashboard({ articles, onSelectArticle, initialTheme
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "1.5rem", alignItems: "start" }}>
 
-          {/* ── Left: track/theme tree ── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            {tracks.map(track => {
-              const isExpanded = expandedTrack === track.id;
-              const count = trackCounts[track.id];
-              const deptPrefix = track.id.match(/^([A-Z]+)/)?.[1] || '';
-              const dept = DEPT_TAGS[deptPrefix];
-              return (
-                <div key={track.id} style={{ background: "#fff", border: "1px solid var(--border)",
-                  borderRadius: "12px", overflow: "hidden", boxShadow: "var(--shadow)" }}>
-
-                  {/* Track header */}
-                  <div
-                    onClick={() => setExpandedTrack(isExpanded ? null : track.id)}
-                    style={{ padding: "0.85rem 1rem", cursor: "pointer", display: "flex",
-                      alignItems: "center", justifyContent: "space-between",
-                      borderLeft: `4px solid ${track.color}`,
-                      background: isExpanded ? `${track.color}10` : "transparent",
-                      transition: "background 0.2s" }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
-                      {isExpanded
-                        ? <ChevronDown size={15} style={{ color: track.color, flexShrink: 0 }} />
-                        : <ChevronRight size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
-                      <span style={{ fontWeight: "700", fontSize: "0.85rem", color: "var(--text-main)" }}>
-                        {track.name}
+          {/* ── Left: track/theme tree grouped by department ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {(() => {
+              const groups = [];
+              const groupMap = {};
+              tracks.forEach(track => {
+                const prefix = track.id.match(/^([A-Z]+)/)?.[1] || '';
+                if (!groupMap[prefix]) { groupMap[prefix] = []; groups.push(prefix); }
+                groupMap[prefix].push(track);
+              });
+              return groups.map(prefix => {
+                const dept = DEPT_TAGS[prefix];
+                const deptTracks = groupMap[prefix];
+                const deptTotal = deptTracks.reduce((s, t) => s + (trackCounts[t.id] || 0), 0);
+                return (
+                  <div key={prefix}>
+                    {/* Department header */}
+                    <div style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      borderBottom: "1px solid #e2e8f0", paddingBottom: "0.35rem", marginBottom: "0.5rem"
+                    }}>
+                      <span style={{ fontWeight: "700", color: "#64748b", fontSize: "0.73rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        {dept?.label || prefix}
                       </span>
-                      {dept && (
-                        <span
-                          title={dept.label}
-                          style={{
-                            fontSize: "0.6rem", fontWeight: "800", letterSpacing: "0.06em",
-                            background: dept.bg, color: dept.color,
-                            padding: "0.1rem 0.35rem", borderRadius: "4px", flexShrink: 0,
-                          }}
-                        >
-                          {deptPrefix}
-                        </span>
-                      )}
+                      <span style={{ fontWeight: "700", color: "#94a3b8", fontSize: "0.73rem" }}>
+                        {deptTotal}
+                      </span>
                     </div>
-                    <span style={{ fontSize: "0.72rem", fontWeight: "800",
-                      background: isExpanded ? track.color : "var(--bg)",
-                      color: isExpanded ? "#fff" : "var(--text-muted)",
-                      padding: "0.15rem 0.5rem", borderRadius: "20px", minWidth: "28px", textAlign: "center" }}>
-                      {count}
-                    </span>
-                  </div>
 
-                  {/* Themes */}
-                  {isExpanded && (
-                    <div style={{ borderTop: "1px solid var(--border)" }}>
-                      {track.themes.map(theme => {
-                        const tCount = themeArticles[theme.id]?.length || 0;
-                        const isSelected = selectedThemeId === theme.id;
+                    {/* Tracks under this department */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                      {deptTracks.map(track => {
+                        const isExpanded = expandedTrack === track.id;
+                        const count = trackCounts[track.id];
                         return (
-                          <div
-                            key={theme.id}
-                            onClick={() => { setSelectedThemeId(isSelected ? null : theme.id); setPage(1); setActiveTab("publications"); }}
-                            style={{ padding: "0.65rem 1rem 0.65rem 2rem",
-                              cursor: tCount > 0 ? "pointer" : "default",
-                              background: isSelected ? `${track.color}15` : "transparent",
-                              borderLeft: isSelected ? `3px solid ${track.color}` : "3px solid transparent",
-                              display: "flex", justifyContent: "space-between", alignItems: "center",
-                              transition: "background 0.15s", opacity: tCount === 0 ? 0.45 : 1 }}
-                          >
-                            <span style={{ fontSize: "0.78rem", color: isSelected ? track.color : "var(--text)",
-                              fontWeight: isSelected ? "700" : "500", lineHeight: "1.4", paddingRight: "0.5rem" }}>
-                              {theme.id} · {theme.name}
-                            </span>
-                            {tCount > 0 && (
-                              <span style={{ fontSize: "0.68rem", fontWeight: "800", flexShrink: 0,
-                                background: isSelected ? track.color : "var(--bg)",
-                                color: isSelected ? "#fff" : "var(--text-muted)",
-                                padding: "0.1rem 0.4rem", borderRadius: "10px" }}>
-                                {tCount}
+                          <div key={track.id} style={{ background: "#fff", border: "1px solid var(--border)",
+                            borderRadius: "10px", overflow: "hidden", boxShadow: "var(--shadow)" }}>
+
+                            {/* Track header */}
+                            <div
+                              onClick={() => setExpandedTrack(isExpanded ? null : track.id)}
+                              style={{ padding: "0.75rem 1rem", cursor: "pointer", display: "flex",
+                                alignItems: "center", justifyContent: "space-between",
+                                borderLeft: `4px solid ${track.color}`,
+                                background: isExpanded ? `${track.color}10` : "transparent",
+                                transition: "background 0.2s" }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                                {isExpanded
+                                  ? <ChevronDown size={15} style={{ color: track.color, flexShrink: 0 }} />
+                                  : <ChevronRight size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
+                                <span style={{ fontWeight: "700", fontSize: "0.85rem", color: "var(--text-main)" }}>
+                                  {track.name}
+                                </span>
+                              </div>
+                              <span style={{ fontSize: "0.72rem", fontWeight: "800",
+                                background: isExpanded ? track.color : "var(--bg)",
+                                color: isExpanded ? "#fff" : "var(--text-muted)",
+                                padding: "0.15rem 0.5rem", borderRadius: "20px", minWidth: "28px", textAlign: "center" }}>
+                                {count}
                               </span>
+                            </div>
+
+                            {/* Themes */}
+                            {isExpanded && (
+                              <div style={{ borderTop: "1px solid var(--border)" }}>
+                                {track.themes.map(theme => {
+                                  const tCount = themeArticles[theme.id]?.length || 0;
+                                  const isSelected = selectedThemeId === theme.id;
+                                  return (
+                                    <div
+                                      key={theme.id}
+                                      onClick={() => { setSelectedThemeId(isSelected ? null : theme.id); setPage(1); setActiveTab("publications"); }}
+                                      style={{ padding: "0.65rem 1rem 0.65rem 2rem",
+                                        cursor: tCount > 0 ? "pointer" : "default",
+                                        background: isSelected ? `${track.color}15` : "transparent",
+                                        borderLeft: isSelected ? `3px solid ${track.color}` : "3px solid transparent",
+                                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                                        transition: "background 0.15s", opacity: tCount === 0 ? 0.45 : 1 }}
+                                    >
+                                      <span style={{ fontSize: "0.78rem", color: isSelected ? track.color : "var(--text)",
+                                        fontWeight: isSelected ? "700" : "500", lineHeight: "1.4", paddingRight: "0.5rem" }}>
+                                        {theme.id} · {theme.name}
+                                      </span>
+                                      {tCount > 0 && (
+                                        <span style={{ fontSize: "0.68rem", fontWeight: "800", flexShrink: 0,
+                                          background: isSelected ? track.color : "var(--bg)",
+                                          color: isSelected ? "#fff" : "var(--text-muted)",
+                                          padding: "0.1rem 0.4rem", borderRadius: "10px" }}>
+                                          {tCount}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             )}
                           </div>
                         );
                       })}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                );
+              });
+            })()}
           </div>
 
           {/* ── Right: paper list ── */}
