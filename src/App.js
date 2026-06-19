@@ -184,15 +184,21 @@ function App() {
         </button>
 
         <div className="sidebar-logo" style={{ textAlign: "center", borderBottom: "none" }}>
-          <div style={{
-            background: "white", width: "40px", height: "40px", borderRadius: "50%",
-            margin: sidebarOpen ? "0 auto 1rem" : "0 auto 0.5rem",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "var(--primary)", fontSize: sidebarOpen ? "1rem" : "0.7rem", fontWeight: "900",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.2)", flexShrink: 0
-          }}>
-            UOB
-          </div>
+          <img
+            src="/FOE_logo.jpg"
+            alt="UOB"
+            style={{
+              width: sidebarOpen ? "120px" : "44px",
+              height: sidebarOpen ? "120px" : "44px",
+              objectFit: "contain",
+              margin: sidebarOpen ? "0 auto 1rem" : "0 auto 0.5rem",
+              display: "block",
+              borderRadius: "50%",
+              background: "white",
+              padding: "4px",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+            }}
+          />
           {sidebarOpen && (
             <>
               <div style={{ fontWeight: "800", fontSize: "1.1rem" }}>RESEARCH PORTAL</div>
