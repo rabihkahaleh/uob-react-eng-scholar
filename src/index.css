@@ -36,7 +36,9 @@ body {
 .dashboard-container {
   display: grid;
   grid-template-columns: 280px 1fr;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  background: #0d1b35;
 }
 
 /* ─── Sidebar ─────────────────────────────────────────────── */
@@ -45,9 +47,7 @@ body {
   border-right: 1px solid rgba(59, 130, 246, 0.15);
   color: white;
   padding: 2rem 1.5rem;
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -107,6 +107,7 @@ body {
 .main-content {
   padding: 2.5rem 3rem;
   overflow-y: auto;
+  height: 100%;
   background: var(--bg);
 }
 
