@@ -4,7 +4,6 @@ import MainNavigation from './MainNavigation';
 import HeroSection from './HeroSection';
 import ImpactStatsBand from './ImpactStatsBand';
 import ResearchAreasSection from './ResearchAreasSection';
-import FeaturedProjectsSection from './FeaturedProjectsSection';
 import ResearcherDiscoverySection from './ResearcherDiscoverySection';
 import RecentPublicationsSection from './RecentPublicationsSection';
 import OpportunitiesSection from './OpportunitiesSection';
@@ -90,14 +89,7 @@ export default function LandingPage({
         }}
       />
 
-      {/* 6. Featured research and projects */}
-      <FeaturedProjectsSection
-        featuredArticles={allArticles}
-        onSelectArticle={onSelectArticle}
-        onViewAll={() => onSelectView('analytics')}
-      />
-
-      {/* 7. Researcher and expertise discovery */}
+      {/* 6. Researcher and expertise discovery */}
       <ResearcherDiscoverySection
         authorsList={authorsList}
         departments={departments}

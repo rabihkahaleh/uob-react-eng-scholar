@@ -22,7 +22,7 @@ export default function HeroSection({ onExploreClick, onSearchClick, onCollabora
 
           <h1 className="hero-heading">
             Advancing Knowledge.<br />
-            Creating Meaningful Impact.
+            Creating Sustainable Impact.
           </h1>
 
           <p className="hero-description">

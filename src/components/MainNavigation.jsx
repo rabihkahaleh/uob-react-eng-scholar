@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, BarChart2, ChevronDown, Building2, BookOpen, Users, Briefcase, Layers } from 'lucide-react';
+import { Menu, X, BarChart2, ChevronDown, Building2, BookOpen, Users, Layers } from 'lucide-react';
 
 export default function MainNavigation({
   activeTab,
@@ -193,99 +193,6 @@ export default function MainNavigation({
             </div>
           </div>
 
-          {/* 4. Opportunities Dropdown */}
-          <div className="nav-dropdown-wrapper">
-            <a
-              href="#opportunities"
-              className={`main-nav-link dropdown-trigger ${activeTab === 'opportunities' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveTab('opportunities');
-                if (currentView !== 'landing') onSelectView('landing');
-                const el = document.getElementById('opportunities');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              Opportunities <ChevronDown size={13} className="dropdown-arrow" />
-            </a>
-
-            <div className="nav-dropdown-menu">
-              <div className="dropdown-header">Grants & Engagement</div>
-              <a
-                href="#grants"
-                className="dropdown-item"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveTab('opportunities');
-                  if (currentView !== 'landing') onSelectView('landing');
-                  const el = document.getElementById('opportunities');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <Briefcase size={14} className="dropdown-icon" />
-                <span>Faculty Funding & Grants</span>
-              </a>
-              <a
-                href="#postgrad"
-                className="dropdown-item"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveTab('opportunities');
-                  if (currentView !== 'landing') onSelectView('landing');
-                  const el = document.getElementById('opportunities');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <Users size={14} className="dropdown-icon" />
-                <span>Postgraduate Assistantships</span>
-              </a>
-              <a
-                href="#industry"
-                className="dropdown-item"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveTab('opportunities');
-                  if (currentView !== 'landing') onSelectView('landing');
-                  const el = document.getElementById('opportunities');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <Building2 size={14} className="dropdown-icon" />
-                <span>Industry R&D Collaboration</span>
-              </a>
-            </div>
-          </div>
-
-          {/* 5. Support Services */}
-          <a
-            href="#support-services"
-            className={`main-nav-link ${activeTab === 'support' ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab('support');
-              if (currentView !== 'landing') onSelectView('landing');
-              const el = document.getElementById('support-services');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-          >
-            Research Support
-          </a>
-
-          {/* 6. News & Events */}
-          <a
-            href="#news-events"
-            className={`main-nav-link ${activeTab === 'news' ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab('news');
-              if (currentView !== 'landing') onSelectView('landing');
-              const el = document.getElementById('news-events');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-          >
-            News & Events
-          </a>
-
         </nav>
 
         {/* Right side controls */}
@@ -356,39 +263,6 @@ export default function MainNavigation({
             }}
           >
             Recent Publications
-          </a>
-          <a
-            href="#opportunities"
-            className="main-nav-mobile-link"
-            onClick={() => {
-              setActiveTab('opportunities');
-              setMobileMenuOpen(false);
-              if (currentView !== 'landing') onSelectView('landing');
-            }}
-          >
-            Opportunities & Grants
-          </a>
-          <a
-            href="#support-services"
-            className="main-nav-mobile-link"
-            onClick={() => {
-              setActiveTab('support');
-              setMobileMenuOpen(false);
-              if (currentView !== 'landing') onSelectView('landing');
-            }}
-          >
-            Research Support
-          </a>
-          <a
-            href="#news-events"
-            className="main-nav-mobile-link"
-            onClick={() => {
-              setActiveTab('news');
-              setMobileMenuOpen(false);
-              if (currentView !== 'landing') onSelectView('landing');
-            }}
-          >
-            News & Events
           </a>
           <button
             className="main-nav-mobile-link analytics-mobile"
