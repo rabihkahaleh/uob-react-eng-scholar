@@ -1,11 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { getDepartments, getArticles, getArticleMetadata } from "./api";
+import InstitutionalTopBar from "./components/InstitutionalTopBar";
+import MainNavigation from "./components/MainNavigation";
+import LandingPage from "./components/LandingPage";
 import Dashboard from "./components/Dashboard";
 import AuthorDashboard from "./components/AuthorDashboard";
 import ThemeDashboard from "./components/ThemeDashboard";
 import JournalsDashboard from "./components/JournalsDashboard";
 import ArticleDetails from "./components/ArticleDetails";
-import { GraduationCap, Home, Loader2, User, Search, PanelLeftClose, PanelLeftOpen, ArrowUp, ArrowDown, BookMarked, Newspaper, ChevronDown, ChevronRight } from "lucide-react";
+import LoginModal from "./components/LoginModal";
+import { tracks } from "./data/facultyThemes";
+import {
+  GraduationCap, Home, Loader2, User, Search,
+  PanelLeftClose, PanelLeftOpen, ArrowUp, ArrowDown,
+  BookMarked, Newspaper, ChevronDown, ChevronRight, Layout
+} from "lucide-react";
 
 function App() {
   const [departments, setDepartments] = useState([]);
@@ -16,7 +25,6 @@ function App() {
   const [loadingProgress, setLoadingProgress] = useState({ percent: 0, message: "Connecting to ScholarHub..." });
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [metadata, setMetadata] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [instructorSearch, setInstructorSearch] = useState("");
   const [instructorSort, setInstructorSort] = useState("publications");
   const [instructorSortDir, setInstructorSortDir] = useState("desc");
@@ -25,7 +33,12 @@ function App() {
   const [initialThemeId, setInitialThemeId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [instructorsExpanded, setInstructorsExpanded] = useState(false);
-  const [departmentsExpanded, setDepartmentsExpanded] = useState(false);
+  const [departmentsExpanded, setDepartmentsExpanded] = useState(true);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+
+  // View state: 'landing' (default institutional landing page) vs 'analytics' (full analytics dashboards)
+  const [currentView, setCurrentView] = useState("landing");
+  const [activeNavTab, setActiveNavTab] = useState("home");
 
   useEffect(() => {
     async function init() {
@@ -56,14 +69,16 @@ function App() {
   // Build sorted authors list from all articles
   const authorsList = useMemo(() => {
     const map = {};
-    // Track unique EIDs per author so shared papers don't inflate the count
     const seenEids = {};
     allArticles.forEach(a => {
       const metaList = Array.isArray(a.metadata) ? a.metadata : [];
       const val = metaList.find(m => m.key === "dc.contributor.uobinstructors")?.value || "";
       const citations = parseInt(metaList.find(m => m.key === "dc.relation.citedby")?.value || "0", 10);
       val.split(";").map(s => s.trim()).filter(Boolean).forEach(name => {
-        if (!map[name]) { map[name] = { name, count: 0, citations: 0, deptId: a.deptId, deptName: a.deptName }; seenEids[name] = new Set(); }
+        if (!map[name]) {
+          map[name] = { name, count: 0, citations: 0, deptId: a.deptId, deptName: a.deptName };
+          seenEids[name] = new Set();
+        }
         if (!seenEids[name].has(a.id)) {
           seenEids[name].add(a.id);
           map[name].count++;
@@ -78,22 +93,24 @@ function App() {
   }, [allArticles, instructorSort, instructorSortDir]);
 
   const handleSelectDepartment = useCallback((dept) => {
-    setSelectedDept(dept);
+    const deptObj = typeof dept === 'string' ? departments.find(d => d.id === dept) : dept;
+    setSelectedDept(deptObj || null);
     setSelectedAuthor(null);
     setSelectedArticle(null);
-    setSearchTerm("");
     setShowThemes(false);
     setShowJournals(false);
-  }, []);
+    setCurrentView("analytics");
+  }, [departments]);
 
   const handleSelectAuthor = useCallback((author) => {
-    setSelectedAuthor(author);
+    const authorObj = typeof author === 'string' ? authorsList.find(a => a.name === author) : author;
+    setSelectedAuthor(authorObj || null);
     setSelectedDept(null);
     setSelectedArticle(null);
-    setSearchTerm("");
     setShowThemes(false);
     setShowJournals(false);
-  }, []);
+    setCurrentView("analytics");
+  }, [authorsList]);
 
   async function handleSelectArticle(article) {
     try {
@@ -109,7 +126,6 @@ function App() {
     setSelectedDept(null);
     setSelectedAuthor(null);
     setSelectedArticle(null);
-    setSearchTerm("");
     setShowThemes(false);
     setShowJournals(false);
   };
@@ -121,7 +137,7 @@ function App() {
     setSelectedDept(null);
     setSelectedAuthor(null);
     setSelectedArticle(null);
-    setSearchTerm("");
+    setCurrentView("analytics");
   };
 
   const handleShowJournals = () => {
@@ -130,7 +146,7 @@ function App() {
     setSelectedDept(null);
     setSelectedAuthor(null);
     setSelectedArticle(null);
-    setSearchTerm("");
+    setCurrentView("analytics");
   };
 
   const currentArticles = selectedDept
@@ -139,23 +155,23 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f1f5f9", gap: "2rem" }}>
-        <Loader2 className="animate-spin" size={48} color="#1e3a8a" />
+      <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f5f7fa", gap: "2rem" }}>
+        <Loader2 className="animate-spin" size={48} color="#12304a" />
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ color: "#1e3a8a", fontWeight: "800", marginBottom: "0.5rem" }}>Synchronizing Research Data</h2>
-          <p style={{ color: "#64748b", marginBottom: "1.5rem" }}>{loadingProgress.message}</p>
+          <h2 style={{ color: "#12304a", fontWeight: "800", marginBottom: "0.5rem" }}>Synchronizing Research Repository</h2>
+          <p style={{ color: "#5f6b76", marginBottom: "1.5rem" }}>{loadingProgress.message}</p>
         </div>
         <div style={{ width: "320px" }}>
           <div style={{ height: "8px", background: "#e2e8f0", borderRadius: "4px", overflow: "hidden" }}>
             <div style={{
               height: "100%",
               width: `${loadingProgress.percent}%`,
-              background: "#1e3a8a",
+              background: "#12304a",
               borderRadius: "4px",
               transition: "width 0.4s ease"
             }} />
           </div>
-          <p style={{ textAlign: "center", marginTop: "0.5rem", fontSize: "0.85rem", fontWeight: "700", color: "#1e3a8a" }}>
+          <p style={{ textAlign: "center", marginTop: "0.5rem", fontSize: "0.85rem", fontWeight: "700", color: "#12304a" }}>
             {loadingProgress.percent}%
           </p>
         </div>
@@ -164,291 +180,313 @@ function App() {
   }
 
   return (
-    <div className="dashboard-container" style={{ gridTemplateColumns: sidebarOpen ? "280px 1fr" : "60px 1fr" }}>
-      {/* Sidebar */}
-      <aside className="sidebar" style={{ padding: sidebarOpen ? "2rem 1.5rem" : "1.25rem 0.5rem", overflow: "hidden", position: "relative" }}>
-        {/* Toggle button */}
-        <button
-          onClick={() => setSidebarOpen(v => !v)}
-          title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          style={{
-            position: "absolute", top: "1rem", right: "-14px",
-            background: "#1e3a8a", border: "1px solid rgba(59,130,246,0.4)",
-            borderRadius: "50%", width: "28px", height: "28px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", color: "#93c5fd", zIndex: 10,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.4)"
-          }}
-        >
-          {sidebarOpen ? <PanelLeftClose size={13} /> : <PanelLeftOpen size={13} />}
-        </button>
-
-        <div className="sidebar-logo" style={{ textAlign: "center", borderBottom: "none" }}>
-          <img
-            src="/FOE_logo.jpg"
-            alt="UOB"
-            style={{
-              width: sidebarOpen ? "200px" : "44px",
-              height: "auto",
-              objectFit: "contain",
-              margin: sidebarOpen ? "0 auto 1rem" : "0 auto 0.5rem",
-              display: "block",
-              borderRadius: "10px",
-              background: "white",
-              padding: sidebarOpen ? "8px" : "4px",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+    <div className="app-root">
+      {/* If in 'landing' mode, display full Institutional Landing Page */}
+      {currentView === "landing" ? (
+        <LandingPage
+          allArticles={allArticles}
+          departments={departments}
+          authorsList={authorsList}
+          tracks={tracks}
+          onSelectDepartment={handleSelectDepartment}
+          onSelectAuthor={handleSelectAuthor}
+          onSelectArticle={handleSelectArticle}
+          onSelectView={setCurrentView}
+          currentView={currentView}
+        />
+      ) : (
+        /* In 'analytics' mode, display persistent Top Header + Sidebar + Main Dashboard */
+        <>
+          <InstitutionalTopBar />
+          <MainNavigation
+            activeTab={activeNavTab}
+            setActiveTab={setActiveNavTab}
+            onOpenLogin={() => setLoginModalOpen(true)}
+            onSearchSubmit={(q) => {
+              setCurrentView("landing");
+              setTimeout(() => {
+                const el = document.getElementById("recent-publications");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }, 100);
             }}
+            currentView={currentView}
+            onSelectView={setCurrentView}
+            departments={departments}
+            onSelectDepartment={handleSelectDepartment}
+            onSelectAuthor={handleSelectAuthor}
           />
-          {sidebarOpen && (
-            <>
-              <div style={{ fontWeight: "800", fontSize: "1.1rem" }}>RESEARCH PORTAL</div>
-            </>
-          )}
-        </div>
 
-        <nav style={{ overflowY: "auto", flex: 1 }}>
-          <ul className="nav-list">
-            <li
-              className={`nav-item ${!selectedDept && !selectedAuthor && !showThemes ? "active" : ""}`}
-              onClick={goHome}
-              title={!sidebarOpen ? "Faculty Overview" : undefined}
-              style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem" }}
-            >
-              <Home size={18} />
-              {sidebarOpen && " Faculty Overview"}
-            </li>
+          <div className="dashboard-container" style={{ gridTemplateColumns: sidebarOpen ? "280px 1fr" : "60px 1fr" }}>
+            {/* Dark Navy Sidebar */}
+            <aside className="sidebar" style={{ padding: sidebarOpen ? "1.5rem 1rem" : "1rem 0.4rem", position: "relative" }}>
+              {/* Collapse/Expand Toggle button */}
+              <button
+                onClick={() => setSidebarOpen(v => !v)}
+                title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+                style={{
+                  position: "absolute", top: "1rem", right: "-12px",
+                  background: "#12304a", border: "1px solid rgba(255,255,255,0.3)",
+                  borderRadius: "50%", width: "26px", height: "26px",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: "#c7a34b", zIndex: 10,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)"
+                }}
+              >
+                {sidebarOpen ? <PanelLeftClose size={13} /> : <PanelLeftOpen size={13} />}
+              </button>
 
-            <li
-              className={`nav-item ${showThemes ? "active" : ""}`}
-              onClick={handleShowThemes}
-              title={!sidebarOpen ? "Research Themes" : undefined}
-              style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem" }}
-            >
-              <BookMarked size={18} />
-              {sidebarOpen && " Research Themes"}
-            </li>
+              <div className="sidebar-logo">
+                <img
+                  src="/FOE_logo.jpg"
+                  alt="UOB FOE"
+                  style={{
+                    width: sidebarOpen ? "160px" : "38px",
+                    height: "auto",
+                    objectFit: "contain",
+                    margin: "0 auto 0.5rem",
+                    display: "block",
+                    borderRadius: "6px",
+                    background: "white",
+                    padding: sidebarOpen ? "5px" : "2px",
+                  }}
+                />
+                {sidebarOpen && (
+                  <div style={{ fontWeight: "800", fontSize: "0.85rem", color: "#c7a34b", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                    Research Analytics
+                  </div>
+                )}
+              </div>
 
-            <li
-              className={`nav-item ${showJournals ? "active" : ""}`}
-              onClick={handleShowJournals}
-              title={!sidebarOpen ? "Journals" : undefined}
-              style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem" }}
-            >
-              <Newspaper size={18} />
-              {sidebarOpen && " Journals"}
-            </li>
-
-            {sidebarOpen && (
-              <>
-                {/* ── Departments section ── */}
-                <div
-                  onClick={() => setDepartmentsExpanded(v => !v)}
-                  style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
-                >
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.85rem", fontWeight: "800", textTransform: "uppercase" }}>
-                    Departments
-                  </span>
-                  {departmentsExpanded
-                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.85)" }} />
-                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.85)" }} />}
-                </div>
-
-                {departmentsExpanded && departments.map((dept) => (
+              <nav style={{ overflowY: "auto", flex: 1 }}>
+                <ul className="nav-list">
                   <li
-                    key={dept.id}
-                    className={`nav-item ${selectedDept?.id === dept.id ? "active" : ""}`}
-                    onClick={() => handleSelectDepartment(dept)}
-                    style={{ justifyContent: "space-between" }}
+                    className="nav-item"
+                    onClick={() => setCurrentView("landing")}
+                    title={!sidebarOpen ? "Institutional Homepage" : undefined}
+                    style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem", background: "rgba(199, 163, 75, 0.15)", border: "1px solid rgba(199, 163, 75, 0.4)", color: "#c7a34b" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                      <GraduationCap size={18} /> {dept.name.replace("Department of ", "")}
-                    </div>
-                    <span style={{
-                      fontSize: "0.7rem",
-                      background: selectedDept?.id === dept.id ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
-                      padding: "0.1rem 0.4rem", borderRadius: "10px", fontWeight: "700"
-                    }}>
-                      {dept.numberItems}
-                    </span>
+                    <Layout size={18} />
+                    {sidebarOpen && " Institutional Homepage"}
                   </li>
-                ))}
 
-                {/* ── Instructors section ── */}
-                <div
-                  onClick={() => setInstructorsExpanded(v => !v)}
-                  style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
-                >
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.85rem", fontWeight: "800", textTransform: "uppercase" }}>
-                    Instructors
-                  </span>
-                  {instructorsExpanded
-                    ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.85)" }} />
-                    : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.85)" }} />}
-                </div>
+                  <li
+                    className={`nav-item ${!selectedDept && !selectedAuthor && !showThemes && !showJournals ? "active" : ""}`}
+                    onClick={goHome}
+                    title={!sidebarOpen ? "Faculty Overview" : undefined}
+                    style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem" }}
+                  >
+                    <Home size={18} />
+                    {sidebarOpen && " Faculty Overview"}
+                  </li>
 
-                {instructorsExpanded && (
-                  <>
-                    {/* Sort controls */}
-                    <div style={{ display: "flex", gap: "0.35rem", marginBottom: "0.5rem" }}>
-                      {[{ key: "publications", label: "Pubs" }, { key: "citations", label: "Cites" }].map(({ key, label }) => {
-                        const isActive = instructorSort === key;
-                        return (
-                          <div key={key} style={{ flex: 1, display: "flex", borderRadius: "6px", overflow: "hidden", border: isActive ? "1px solid rgba(59,130,246,0.5)" : "1px solid rgba(255,255,255,0.1)" }}>
-                            <button
-                              onClick={e => { e.stopPropagation(); setInstructorSort(key); setInstructorSortDir("desc"); }}
-                              style={{
-                                flex: 1, padding: "0.3rem 0.3rem",
-                                fontSize: "0.68rem", fontWeight: "700",
-                                cursor: "pointer", border: "none",
-                                background: isActive ? "rgba(59,130,246,0.2)" : "transparent",
-                                color: isActive ? "#93c5fd" : "rgba(255,255,255,0.7)",
-                              }}
-                            >
-                              {label}
-                            </button>
-                            <button
-                              onClick={e => { e.stopPropagation(); setInstructorSort(key); setInstructorSortDir(d => isActive ? (d === "desc" ? "asc" : "desc") : "desc"); }}
-                              style={{
-                                padding: "0.3rem 0.4rem", border: "none",
-                                borderLeft: "1px solid rgba(255,255,255,0.08)",
-                                background: isActive ? "rgba(59,130,246,0.2)" : "transparent",
-                                color: isActive ? "#93c5fd" : "rgba(255,255,255,0.6)",
-                                cursor: "pointer", display: "flex", alignItems: "center"
-                              }}
-                            >
-                              {isActive && instructorSortDir === "asc"
-                                ? <ArrowUp size={11} />
-                                : <ArrowDown size={11} />}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  <li
+                    className={`nav-item ${showThemes ? "active" : ""}`}
+                    onClick={handleShowThemes}
+                    title={!sidebarOpen ? "Research Tracks" : undefined}
+                    style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem" }}
+                  >
+                    <BookMarked size={18} />
+                    {sidebarOpen && " Research Tracks"}
+                  </li>
 
-                    {/* Instructor search */}
-                    <div style={{ position: "relative", marginBottom: "0.5rem" }}>
-                      <Search size={13} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.5)" }} />
-                      <input
-                        type="text"
-                        placeholder="Search instructors..."
-                        value={instructorSearch}
-                        onChange={e => setInstructorSearch(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "0.45rem 0.75rem 0.45rem 2rem",
-                          background: "rgba(255,255,255,0.05)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          borderRadius: "8px",
-                          color: "#e2e8f0",
-                          fontSize: "0.78rem",
-                          outline: "none",
-                          fontFamily: "inherit",
-                        }}
-                      />
-                    </div>
+                  <li
+                    className={`nav-item ${showJournals ? "active" : ""}`}
+                    onClick={handleShowJournals}
+                    title={!sidebarOpen ? "Journals" : undefined}
+                    style={{ justifyContent: sidebarOpen ? undefined : "center", padding: sidebarOpen ? undefined : "0.65rem" }}
+                  >
+                    <Newspaper size={18} />
+                    {sidebarOpen && " Journals & Sources"}
+                  </li>
 
-                    {authorsList
-                      .filter(a => !instructorSearch || a.name.toLowerCase().includes(instructorSearch.toLowerCase()))
-                      .map((author) => (
+                  {sidebarOpen && (
+                    <>
+                      {/* ── Departments section ── */}
+                      <div
+                        onClick={() => setDepartmentsExpanded(v => !v)}
+                        style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
+                      >
+                        <span style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.75rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          Departments
+                        </span>
+                        {departmentsExpanded
+                          ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.75)" }} />
+                          : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.75)" }} />}
+                      </div>
+
+                      {departmentsExpanded && departments.map((dept) => (
                         <li
-                          key={author.name}
-                          className={`nav-item ${selectedAuthor?.name === author.name ? "active" : ""}`}
-                          onClick={() => handleSelectAuthor(author)}
+                          key={dept.id}
+                          className={`nav-item ${selectedDept?.id === dept.id ? "active" : ""}`}
+                          onClick={() => handleSelectDepartment(dept)}
                           style={{ justifyContent: "space-between" }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                            <User size={16} /> {author.name}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+                            <GraduationCap size={16} /> {dept.name.replace("Department of ", "")}
                           </div>
                           <span style={{
                             fontSize: "0.7rem",
-                            background: selectedAuthor?.name === author.name ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
+                            background: selectedDept?.id === dept.id ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)",
                             padding: "0.1rem 0.4rem", borderRadius: "10px", fontWeight: "700"
                           }}>
-                            {instructorSort === "citations" ? author.citations : author.count}
+                            {dept.numberItems}
                           </span>
                         </li>
                       ))}
-                  </>
-                )}
-              </>
-            )}
 
-            {/* Collapsed state: icon-only nav items */}
-            {!sidebarOpen && (
-              <>
-                {authorsList.map((author) => (
-                  <li
-                    key={author.name}
-                    className={`nav-item ${selectedAuthor?.name === author.name && !showThemes ? "active" : ""}`}
-                    onClick={() => handleSelectAuthor(author)}
-                    title={author.name}
-                    style={{ justifyContent: "center", padding: "0.65rem" }}
-                  >
-                    <User size={16} />
-                  </li>
-                ))}
-                {departments.map((dept) => (
-                  <li
-                    key={dept.id}
-                    className={`nav-item ${selectedDept?.id === dept.id ? "active" : ""}`}
-                    onClick={() => handleSelectDepartment(dept)}
-                    title={dept.name.replace("Department of ", "")}
-                    style={{ justifyContent: "center", padding: "0.65rem" }}
-                  >
-                    <GraduationCap size={18} />
-                  </li>
-                ))}
-              </>
-            )}
-          </ul>
-        </nav>
-      </aside>
+                      {/* ── Instructors section ── */}
+                      <div
+                        onClick={() => setInstructorsExpanded(v => !v)}
+                        style={{ margin: "1.25rem 0 0.5rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
+                      >
+                        <span style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.75rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          Instructors
+                        </span>
+                        {instructorsExpanded
+                          ? <ChevronDown size={12} style={{ color: "rgba(255,255,255,0.75)" }} />
+                          : <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.75)" }} />}
+                      </div>
 
-      {/* Main Content */}
-      <main className="main-content">
-        {showThemes ? (
-          <ThemeDashboard
-            articles={allArticles}
-            onSelectArticle={handleSelectArticle}
-            initialThemeId={initialThemeId}
-          />
-        ) : showJournals ? (
-          <JournalsDashboard
-            articles={allArticles}
-            onSelectArticle={handleSelectArticle}
-          />
-        ) : selectedAuthor ? (
-          <AuthorDashboard
-            authorName={selectedAuthor.name}
-            articles={allArticles}
-            onSelectArticle={handleSelectArticle}
-          />
-        ) : (
-          <>
-            <Dashboard
-              departments={departments}
-              selectedDept={selectedDept}
-              articles={currentArticles}
-              onSelectAuthor={(name) => {
-                const a = authorsList.find(x => x.name === name);
-                if (a) handleSelectAuthor(a);
-              }}
-              onSelectDept={(fullName) => {
-                const d = departments.find(x => x.fullName === fullName || x.name === fullName);
-                if (d) handleSelectDepartment(d);
-              }}
-              onSelectTheme={handleShowThemes}
-            />
-          </>
-        )}
+                      {instructorsExpanded && (
+                        <>
+                          <div style={{ display: "flex", gap: "0.35rem", marginBottom: "0.5rem" }}>
+                            {[{ key: "publications", label: "Pubs" }, { key: "citations", label: "Cites" }].map(({ key, label }) => {
+                              const isActive = instructorSort === key;
+                              return (
+                                <div key={key} style={{ flex: 1, display: "flex", borderRadius: "6px", overflow: "hidden", border: isActive ? "1px solid rgba(199,163,75,0.5)" : "1px solid rgba(255,255,255,0.1)" }}>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); setInstructorSort(key); setInstructorSortDir("desc"); }}
+                                    style={{
+                                      flex: 1, padding: "0.3rem 0.3rem",
+                                      fontSize: "0.68rem", fontWeight: "700",
+                                      cursor: "pointer", border: "none",
+                                      background: isActive ? "rgba(199,163,75,0.2)" : "transparent",
+                                      color: isActive ? "#c7a34b" : "rgba(255,255,255,0.7)",
+                                    }}
+                                  >
+                                    {label}
+                                  </button>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); setInstructorSort(key); setInstructorSortDir(d => isActive ? (d === "desc" ? "asc" : "desc") : "desc"); }}
+                                    style={{
+                                      padding: "0.3rem 0.4rem", border: "none",
+                                      borderLeft: "1px solid rgba(255,255,255,0.08)",
+                                      background: isActive ? "rgba(199,163,75,0.2)" : "transparent",
+                                      color: isActive ? "#c7a34b" : "rgba(255,255,255,0.6)",
+                                      cursor: "pointer", display: "flex", alignItems: "center"
+                                    }}
+                                  >
+                                    {isActive && instructorSortDir === "asc"
+                                      ? <ArrowUp size={11} />
+                                      : <ArrowDown size={11} />}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
 
-        {selectedArticle && (
-          <ArticleDetails
-            metadata={metadata}
-            onClose={() => setSelectedArticle(null)}
-          />
-        )}
-      </main>
+                          <div style={{ position: "relative", marginBottom: "0.5rem" }}>
+                            <Search size={13} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.5)" }} />
+                            <input
+                              type="text"
+                              placeholder="Search instructors..."
+                              value={instructorSearch}
+                              onChange={e => setInstructorSearch(e.target.value)}
+                              style={{
+                                width: "100%",
+                                padding: "0.45rem 0.75rem 0.45rem 2rem",
+                                background: "rgba(255,255,255,0.08)",
+                                border: "1px solid rgba(255,255,255,0.15)",
+                                borderRadius: "6px",
+                                color: "#e2e8f0",
+                                fontSize: "0.78rem",
+                                outline: "none",
+                              }}
+                            />
+                          </div>
+
+                          {authorsList
+                            .filter(a => !instructorSearch || a.name.toLowerCase().includes(instructorSearch.toLowerCase()))
+                            .map((author) => (
+                              <li
+                                key={author.name}
+                                className={`nav-item ${selectedAuthor?.name === author.name ? "active" : ""}`}
+                                onClick={() => handleSelectAuthor(author)}
+                                style={{ justifyContent: "space-between" }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+                                  <User size={15} /> {author.name}
+                                </div>
+                                <span style={{
+                                  fontSize: "0.7rem",
+                                  background: selectedAuthor?.name === author.name ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)",
+                                  padding: "0.1rem 0.4rem", borderRadius: "10px", fontWeight: "700"
+                                }}>
+                                  {instructorSort === "citations" ? author.citations : author.count}
+                                </span>
+                              </li>
+                            ))}
+                        </>
+                      )}
+                    </>
+                  )}
+                </ul>
+              </nav>
+            </aside>
+
+            {/* Main Content Dashboard */}
+            <main className="main-content">
+              {showThemes ? (
+                <ThemeDashboard
+                  articles={allArticles}
+                  onSelectArticle={handleSelectArticle}
+                  initialThemeId={initialThemeId}
+                />
+              ) : showJournals ? (
+                <JournalsDashboard
+                  articles={allArticles}
+                  onSelectArticle={handleSelectArticle}
+                />
+              ) : selectedAuthor ? (
+                <AuthorDashboard
+                  authorName={selectedAuthor.name}
+                  articles={allArticles}
+                  onSelectArticle={handleSelectArticle}
+                />
+              ) : (
+                <Dashboard
+                  departments={departments}
+                  selectedDept={selectedDept}
+                  articles={currentArticles}
+                  onSelectAuthor={(name) => {
+                    const a = authorsList.find(x => x.name === name);
+                    if (a) handleSelectAuthor(a);
+                  }}
+                  onSelectDept={(fullName) => {
+                    const d = departments.find(x => x.fullName === fullName || x.name === fullName);
+                    if (d) handleSelectDepartment(d);
+                  }}
+                  onSelectTheme={handleShowThemes}
+                />
+              )}
+            </main>
+          </div>
+        </>
+      )}
+
+      {/* Article Details Modal */}
+      {selectedArticle && (
+        <ArticleDetails
+          metadata={metadata}
+          onClose={() => setSelectedArticle(null)}
+        />
+      )}
+
+      {/* Researcher Login Modal */}
+      <LoginModal
+        isOpen={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+      />
     </div>
   );
 }
